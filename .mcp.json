@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "headspin": {
+      "command": "python3",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/headspin_mcp_server.py"],
+      "env": {
+        "HS_API_TOKEN": "${CLAUDE_PLUGIN_OPTION_API_TOKEN}",
+        "HS_API_HOST": "${CLAUDE_PLUGIN_OPTION_API_HOST}"
+      }
+    }
+  }
+}

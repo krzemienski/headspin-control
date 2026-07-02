@@ -1,0 +1,14 @@
+{
+  "name": "headspin-dev",
+  "owner": {
+    "name": "HeadSpin Control Plugin Authors"
+  },
+  "plugins": [
+    {
+      "name": "headspin-control",
+      "source": "./",
+      "description": "HeadSpin device control: skills, commands, agents, hooks, MCP server."
+    }
+  ],
+  "description": "HeadSpin device control plugin \u2014 HAR-verified auth, device inventory, Appium/socket.io/Janus control planes, exploration, and bug reporting."
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "headspin-control",
+  "displayName": "HeadSpin Device Control",
+  "version": "0.2.0",
+  "description": "HeadSpin device control for Claude Code: skills, slash commands, subagents, hooks, and a bundled MCP server. Authenticate to a HeadSpin environment, enumerate and lock real devices, drive them over documented REST/Appium surfaces, run automated exploration, and produce standardized bug reports. Validated against ui-dev.headspin.io for the 2026-07-02 session (see e2e-evidence/headspin-cook-260702/).",
+  "author": {
+    "name": "HeadSpin Control Plugin Authors"
+  },
+  "homepage": "https://docs.claude.com/en/docs/claude-code/plugins.md",
+  "repository": "https://code.claude.com/docs/en/plugins-reference.md",
+  "license": "MIT",
+  "keywords": [
+    "headspin",
+    "device-farm",
+    "roku",
+    "ios",
+    "android",
+    "remote-control",
+    "qa-automation",
+    "bug-reporting"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "defaultEnabled": false,
+  "userConfig": {
+    "api_host": {
+      "type": "string",
+      "title": "HeadSpin API host",
+      "description": "Base URL for the HeadSpin REST API. Use the dev environment for the cookbook, your own subdomain for production.",
+      "default": "https://api-dev.headspin.io",
+      "required": true
+    },
+    "ui_host": {
+      "type": "string",
+      "title": "HeadSpin UI host",
+      "description": "Base URL for the HeadSpin web UI; used to discover device tunnel hosts and to confirm the environment before connecting.",
+      "default": "https://ui-dev.headspin.io",
+      "required": true
+    },
+    "api_token": {
+      "type": "string",
+      "title": "HeadSpin API token",
+      "description": "Bearer token from your HeadSpin profile (Settings -> API Tokens). Stored in the OS keychain when 'sensitive' is true; see plugins-reference.md for the storage trade-off.",
+      "sensitive": true,
+      "required": true
+    },
+    "tunnel_host": {
+      "type": "string",
+      "title": "Default device tunnel host",
+      "description": "Region host used for per-device control websockets. Override per device if your devices are spread across regions.",
+      "default": "dev-ca-tor-0.headspin.io"
+    },
+    "tunnel_port": {
+      "type": "number",
+      "title": "Default device tunnel port",
+      "description": "TCP port for the websocket control channel. Confirmed in the 2026-07-02 HAR.",
+      "default": 33100
+    }
+  }
+}

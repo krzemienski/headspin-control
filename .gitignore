@@ -1,0 +1,30 @@
+# Secret-bearing files: do NOT commit. Tokens / API keys extracted from HAR
+# or any *.env file.
+**/secrets.env
+**/secrets.*
+*.env
+.env
+
+# Per-plugin local settings overrides
+*.local
+.claude/settings.local.json
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+
+# Runtime artifacts
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Keep e2e-evidence/ tracked for the validation gate; only secret-bearing
+# files inside it are ignored (covered by **/secrets.env above).
+
+# Tooling noise — never ship in the plugin
+.mimirs/
+**/.mimirs/
+.omc/
+**/__pycache__/
