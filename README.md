@@ -1,5 +1,7 @@
 # HeadSpin Control
 
+📖 **Docs site: [krzemienski.github.io/headspin-control](https://krzemienski.github.io/headspin-control/)** — interactive [architecture &amp; auth reference](https://krzemienski.github.io/headspin-control/docs.html) and a [17-slide walkthrough](https://krzemienski.github.io/headspin-control/deck.html).
+
 A Claude Code plugin for driving real devices on a [HeadSpin](https://www.headspin.io/)
 device farm: authenticate to an environment, enumerate and lock devices, connect and
 control iOS / Android, run automated exploration, and file standardized bug reports —
