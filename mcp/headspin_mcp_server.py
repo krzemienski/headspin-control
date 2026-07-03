@@ -42,14 +42,34 @@ stdio transport (one message per line, no embedded newlines).
 
 import json
 import os
+import ssl
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 
+
+def _ssl_context():
+    """Default context, falling back to the system CA bundle when python's
+    bundled certs can't verify (common on macOS python.org builds)."""
+    ctx = ssl.create_default_context()
+    if not ctx.get_ca_certs() and os.path.exists("/etc/ssl/cert.pem"):
+        ctx = ssl.create_default_context(cafile="/etc/ssl/cert.pem")
+    return ctx
+
+
+_SSL_CTX = None
+
+
+def _ssl():
+    global _SSL_CTX
+    if _SSL_CTX is None:
+        _SSL_CTX = _ssl_context()
+    return _SSL_CTX
+
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "headspin"
-SERVER_VERSION = "0.2.0"
+SERVER_VERSION = "1.1.0"
 DEFAULT_HOST = "https://api-dev.headspin.io"
 HTTP_TIMEOUT = 30
 
@@ -63,12 +83,38 @@ class HeadSpinHTTPError(Exception):
         self.body = body
 
 
+LOGIN_ENV_FILE = "/tmp/headspin-control/secrets.env"
+_login_env = None
+
+
+def _env(name):
+    # An unexpanded ${CLAUDE_PLUGIN_OPTION_*} placeholder (plugin option unset)
+    # must count as absent, not as a literal value. Fall back to the
+    # /headspin:login session file so the server works without plugin options.
+    value = os.environ.get(name, "")
+    if value and not value.startswith("${"):
+        return value
+    global _login_env
+    if _login_env is None:
+        _login_env = {}
+        try:
+            with open(LOGIN_ENV_FILE) as f:
+                for line in f:
+                    line = line.strip().removeprefix("export ")
+                    if "=" in line and not line.startswith("#"):
+                        k, _, v = line.partition("=")
+                        _login_env[k.strip()] = v.strip().strip("\"'")
+        except OSError:
+            pass
+    return _login_env.get(name, "")
+
+
 def _api_host():
-    return (os.environ.get("HS_API_HOST") or DEFAULT_HOST).rstrip("/")
+    return (_env("HS_API_HOST") or DEFAULT_HOST).rstrip("/")
 
 
 def _api_token():
-    token = os.environ.get("HS_API_TOKEN")
+    token = _env("HS_API_TOKEN")
     if not token:
         raise HeadSpinHTTPError(
             0,
@@ -89,11 +135,15 @@ def _request(method, path, query=None, body=None):
         "Accept": "application/json",
     }
     if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
+        if isinstance(body, str):
+            # Raw text body (adb shell commands are posted verbatim, not JSON).
+            data = body.encode("utf-8")
+        else:
+            data = json.dumps(body).encode("utf-8")
+            headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT, context=_ssl()) as resp:
             raw = resp.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         detail = ""
@@ -110,6 +160,58 @@ def _request(method, path, query=None, body=None):
         return json.loads(raw)
     except json.JSONDecodeError:
         return {"raw": raw}
+
+
+DOWNLOAD_DIR = os.environ.get("HS_DOWNLOAD_DIR", "/tmp/headspin-control/downloads")
+
+
+def _request_download(path, save_path=None, query=None):
+    """Stream a real binary/text artifact to disk (mp4/har/device.log/pcap/csv).
+
+    Returns metadata (saved path, byte size, content-type) rather than the bytes
+    themselves — MCP tool results are text, so a 40 MB video must not be inlined.
+    """
+    url = _api_host() + path
+    if query:
+        url += "?" + urllib.parse.urlencode(query)
+    headers = {"Authorization": "Bearer " + _api_token()}
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    if not save_path:
+        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+        save_path = os.path.join(DOWNLOAD_DIR, os.path.basename(path) or "download.bin")
+    else:
+        os.makedirs(os.path.dirname(os.path.abspath(save_path)) or ".", exist_ok=True)
+    try:
+        with urllib.request.urlopen(req, timeout=max(HTTP_TIMEOUT, 120), context=_ssl()) as resp:
+            ctype = resp.headers.get("Content-Type", "")
+            total = 0
+            with open(save_path, "wb") as fh:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+                    total += len(chunk)
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001
+            detail = exc.reason or ""
+        raise HeadSpinHTTPError(exc.code, detail) from exc
+    except urllib.error.URLError as exc:
+        raise HeadSpinHTTPError(0, f"connection error: {exc.reason}") from exc
+    return {"saved_to": save_path, "bytes": total, "content_type": ctype, "path": path}
+
+
+def _session_id(args):
+    """Resolve the required session_id path segment (a UUID string)."""
+    sid = args.get("session_id")
+    if not sid:
+        raise HeadSpinHTTPError(
+            0, "session_id is required (a session UUID, e.g. from hs_list_sessions)."
+        )
+    return urllib.parse.quote(str(sid), safe="-")
 
 
 # --- Tool implementations (each makes a real REST call) --------------------
@@ -189,12 +291,178 @@ def tool_unlock_device(args):
     return _request("POST", "/v0/idevice/%s/unlock" % _idevice_addr(args))
 
 
+def _adb_device_id(args):
+    """Resolve the ADB REST path segment — bare serial or full device address."""
+    dev = args.get("device_id") or args.get("device_address")
+    if not dev:
+        raise HeadSpinHTTPError(
+            0, "device_id is required (Android serial, e.g. RFCN80FV2TA, or full "
+               "device address serial@proxy-host).")
+    return urllib.parse.quote(str(dev), safe="@.-")
+
+
+def tool_adb_lock(args):
+    # DOC + LIVE-VERIFIED 2026-07-03: POST /v0/adb/{device_id}/lock ->
+    # {"status":0,"message":"<addr> locked."}. Android/Cast/FireTV counterpart of
+    # hs_lock_device. Optional timeout (retry window, seconds).
+    query = {"timeout": str(args["timeout"])} if args.get("timeout") else None
+    return _request("POST", "/v0/adb/%s/lock" % _adb_device_id(args), query=query)
+
+
+def tool_adb_unlock(args):
+    # POST /v0/adb/{device_id}/unlock — release an Android device lease. Always
+    # call after hs_adb_lock, even on error paths.
+    return _request("POST", "/v0/adb/%s/unlock" % _adb_device_id(args))
+
+
+def tool_adb_shell(args):
+    # LIVE-VERIFIED 2026-07-03: POST /v0/adb/{device_id}/shell with the raw shell
+    # command as the request body -> {"stdout": "..."}. Device must be locked by
+    # the caller first. This is how Android devices are DRIVEN over REST
+    # (input tap/swipe/keyevent, am start, dumpsys ...).
+    cmd = args.get("command")
+    if not cmd:
+        raise HeadSpinHTTPError(0, "command is required (an adb shell command string).")
+    return _request("POST", "/v0/adb/%s/shell" % _adb_device_id(args), body=str(cmd))
+
+
+def tool_start_capture(args):
+    # LIVE-VERIFIED 2026-07-03: POST /v0/sessions {"session_type":"capture",
+    # "device_address":...} -> {"session_id":...}. Device must be locked first
+    # (hs_lock_device / hs_adb_lock). capture_video defaults true here because the
+    # screen-recording MP4 is the point of a capture session.
+    dev = args.get("device_address")
+    if not dev:
+        raise HeadSpinHTTPError(0, "device_address is required ({serial|udid}@proxy-host).")
+    body = {"session_type": "capture", "device_address": str(dev),
+            "capture_video": bool(args.get("capture_video", True))}
+    if args.get("nowait") is not None:
+        body["nowait"] = bool(args["nowait"])
+    return _request("POST", "/v0/sessions", body=body)
+
+
+def tool_stop_capture(args):
+    # LIVE-VERIFIED 2026-07-03: PATCH /v0/sessions/{sid} {"active":false} ->
+    # {"msg":"Video uploaded to .../{sid}.mp4"}. Poll hs_session_timestamps for
+    # the capture-complete mark before downloading artifacts.
+    return _request("PATCH", "/v0/sessions/%s" % _session_id(args), body={"active": False})
+
+
+def tool_list_sessions(args):
+    # HAR-DOC + LIVE-VERIFIED (2026-07-02): GET /v0/sessions -> 200
+    # {"sessions":[...], "next_token":...}. Capture sessions in the org, newest
+    # first. `include_all=true` returns ended sessions too (default false = live
+    # only); `num_sessions` caps the page (max 100); `next_token` paginates.
+    query = {}
+    if args.get("include_all") is not None:
+        query["include_all"] = "true" if args.get("include_all") else "false"
+    if args.get("num_sessions"):
+        query["num_sessions"] = str(args["num_sessions"])
+    if args.get("next_token"):
+        query["next_token"] = str(args["next_token"])
+    return _request("GET", "/v0/sessions", query=query or None)
+
+
+def tool_session_timestamps(args):
+    # GET /v0/sessions/{sid}/timestamps -> capture-started/-ended/-complete epoch
+    # marks. 404 if the session has no timestamps yet (still capturing) or is
+    # unknown. Used to poll a nowait capture to ready/complete.
+    return _request("GET", "/v0/sessions/%s/timestamps" % _session_id(args))
+
+
+def tool_session_issues(args):
+    # GET /v0/sessions/analysis/issues/{sid} -> the SAME data shown in the
+    # Waterfall UI issue card (Low Frame Rate, Domain Sharding, etc.) — the core
+    # of a HeadSpin report. `orient=column` (default) or `record`.
+    query = {"orient": args["orient"]} if args.get("orient") in ("column", "record") else None
+    return _request("GET", "/v0/sessions/analysis/issues/%s" % _session_id(args), query=query)
+
+
+def tool_analysis_status(args):
+    # GET /v0/sessions/analysis/status/{sid}?timeout=N -> {status: done|timeout|
+    # error}. timeout=0 checks current state without blocking (the safe default
+    # here); optional `track` narrows to a specific analysis.
+    query = {"timeout": str(args.get("timeout", 0))}
+    if args.get("track"):
+        query["track"] = str(args["track"])
+    return _request("GET", "/v0/sessions/analysis/status/%s" % _session_id(args), query=query)
+
+
+def tool_session_timeseries_info(args):
+    # GET /v0/sessions/timeseries/{sid}/info -> dict of available time series
+    # (impact, memory_used, frame_rate, ...) each with name/category/units. This
+    # is "what occurred on the device" as measurable signals.
+    return _request("GET", "/v0/sessions/timeseries/%s/info" % _session_id(args))
+
+
+def tool_session_timeseries_download(args):
+    # GET /v0/sessions/timeseries/{sid}/download?key=K -> CSV of one time series
+    # over the session timeline. Saved to disk (CSV can be large); the tool
+    # returns the saved path + byte size, not the CSV body.
+    key = args.get("key")
+    if not key:
+        raise HeadSpinHTTPError(0, "key is required (a time_series_key from hs_session_timeseries_info).")
+    save = args.get("save_path") or os.path.join(DOWNLOAD_DIR, "%s-%s.csv" % (args.get("session_id"), key))
+    return _request_download(
+        "/v0/sessions/timeseries/%s/download" % _session_id(args),
+        save_path=save, query={"key": str(key)},
+    )
+
+
+def tool_session_video_metadata(args):
+    # GET /v0/sessions/{sid}/video/metadata -> dimensions/fps/duration/codec/audio.
+    return _request("GET", "/v0/sessions/%s/video/metadata" % _session_id(args))
+
+
+def tool_session_download(args):
+    # GET /v0/sessions/{sid}.{ext} -> stream a captured artifact to disk. ext is
+    # the device-event / waterfall raw data: har (network waterfall), mar, csv,
+    # device.log.gz (device events), appium.log.gz, mp4 (screen recording), pcap.
+    # Saved to disk; returns path + size, never the bytes.
+    ext = args.get("ext")
+    allowed = {"har", "mar", "csv", "mp4", "pcap", "device.log.gz", "device.log",
+               "appium.log.gz", "appium.log", "selenium.log.gz", "jsconsole.log.gz",
+               "sslkeylog.txt"}
+    if ext not in allowed:
+        raise HeadSpinHTTPError(0, "ext must be one of: %s" % ", ".join(sorted(allowed)))
+    sid = args.get("session_id")
+    if not sid:
+        raise HeadSpinHTTPError(0, "session_id is required.")
+    query = {}
+    if ext == "har" and args.get("enhanced"):
+        query["enhanced"] = "True"
+    if ext == "mp4" and args.get("fps"):
+        query["fps"] = str(args["fps"])
+    save = args.get("save_path") or os.path.join(DOWNLOAD_DIR, "%s.%s" % (sid, ext))
+    return _request_download("/v0/sessions/%s.%s" % (urllib.parse.quote(str(sid), safe="-"), ext),
+                             save_path=save, query=query or None)
+
+
+def tool_session_tls_exceptions(args):
+    # GET /v0/sessions/{sid}/tlsexceptions -> {host: exception_count}. Surfaces
+    # hosts whose TLS pinning broke network capture (a real waterfall gap signal).
+    return _request("GET", "/v0/sessions/%s/tlsexceptions" % _session_id(args))
+
+
 _DEVICE_ADDR_SCHEMA = {
     "type": "string",
     "description": (
         "iOS device address `{udid}@{proxy-host}.headspin.io` — the UDID joined "
         "to its physical proxy host with `@` (e.g. "
         "00008030-001174DE2260402E@dev-ca-tor-0-proxy-3-mac.headspin.io)."
+    ),
+}
+
+_SESSION_ID_SCHEMA = {
+    "type": "string",
+    "description": "A HeadSpin capture session UUID (from hs_list_sessions).",
+}
+
+_ADB_DEVICE_SCHEMA = {
+    "type": "string",
+    "description": (
+        "Android device serial (e.g. RFCN80FV2TA) or full device address "
+        "serial@proxy-host.headspin.io."
     ),
 }
 
@@ -291,6 +559,248 @@ TOOLS = [
             "additionalProperties": False,
         },
         "handler": tool_unlock_device,
+    },
+    # --- v1.1 session / waterfall / report / device-event surface (Bearer REST) ---
+    {
+        "name": "hs_adb_lock",
+        "description": (
+            "POST /v0/adb/{device_id}/lock — reserve an Android/Cast/FireTV device by "
+            "serial. LIVE-VERIFIED 2026-07-03. Optional timeout = retry window in "
+            "seconds. Counterpart of hs_lock_device (iOS)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "device_id": _ADB_DEVICE_SCHEMA,
+                "timeout": {"type": "integer", "description": "Retry window in seconds (0 = single attempt)."},
+            },
+            "required": ["device_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_adb_lock,
+    },
+    {
+        "name": "hs_adb_unlock",
+        "description": (
+            "POST /v0/adb/{device_id}/unlock — release an Android device lease held by "
+            "hs_adb_lock. Always call after a lock, even on error paths."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"device_id": _ADB_DEVICE_SCHEMA},
+            "required": ["device_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_adb_unlock,
+    },
+    {
+        "name": "hs_adb_shell",
+        "description": (
+            "POST /v0/adb/{device_id}/shell — run an adb shell command on a locked "
+            "Android device (raw command string as body -> {\"stdout\": ...}). "
+            "LIVE-VERIFIED 2026-07-03. This is how Android devices are driven over "
+            "REST: input tap/swipe/keyevent, am start, dumpsys, pm list packages."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "device_id": _ADB_DEVICE_SCHEMA,
+                "command": {"type": "string", "description": "adb shell command, e.g. 'input swipe 400 1400 400 400 200'."},
+            },
+            "required": ["device_id", "command"],
+            "additionalProperties": False,
+        },
+        "handler": tool_adb_shell,
+    },
+    {
+        "name": "hs_start_capture",
+        "description": (
+            "POST /v0/sessions {session_type:capture, device_address, capture_video} — "
+            "start a capture session on a LOCKED device. Returns {session_id}. "
+            "LIVE-VERIFIED 2026-07-03. capture_video defaults true (screen-recording MP4)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "device_address": {"type": "string", "description": "Full device address {serial|udid}@proxy-host.headspin.io."},
+                "capture_video": {"type": "boolean", "description": "Record the screen (default true)."},
+                "nowait": {"type": "boolean", "description": "Return immediately; poll timestamps for readiness."},
+            },
+            "required": ["device_address"],
+            "additionalProperties": False,
+        },
+        "handler": tool_start_capture,
+    },
+    {
+        "name": "hs_stop_capture",
+        "description": (
+            "PATCH /v0/sessions/{session_id} {active:false} — stop a capture session. "
+            "Success msg cites the uploaded MP4. Poll hs_session_timestamps for the "
+            "capture-complete mark before downloading artifacts. LIVE-VERIFIED 2026-07-03."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"session_id": _SESSION_ID_SCHEMA},
+            "required": ["session_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_stop_capture,
+    },
+    {
+        "name": "hs_list_sessions",
+        "description": (
+            "GET /v0/sessions — list capture sessions in the org, newest first. "
+            "LIVE-VERIFIED. Returns {\"sessions\":[{session_id, device_id, device_address, "
+            "session_type, state, start_time, error_code}], \"next_token\":...}. Each "
+            "session_id feeds the waterfall / report / device-event tools below. "
+            "include_all=true adds ended sessions (default false=live only)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "include_all": {"type": "boolean", "description": "Include ended sessions (default false = live only)."},
+                "num_sessions": {"type": "integer", "description": "Max sessions per page (1-100, default 10)."},
+                "next_token": {"type": "string", "description": "Pagination token from a prior response."},
+            },
+            "additionalProperties": False,
+        },
+        "handler": tool_list_sessions,
+    },
+    {
+        "name": "hs_session_issues",
+        "description": (
+            "GET /v0/sessions/analysis/issues/{session_id} — the WATERFALL UI issue card "
+            "data (Low Frame Rate, Domain Sharding, etc.): the core of a HeadSpin "
+            "performance report. orient=column (default) or record."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": _SESSION_ID_SCHEMA,
+                "orient": {"type": "string", "enum": ["column", "record"], "description": "Output shape (default column)."},
+            },
+            "required": ["session_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_session_issues,
+    },
+    {
+        "name": "hs_session_timestamps",
+        "description": (
+            "GET /v0/sessions/{session_id}/timestamps — capture-started/-ended/-complete "
+            "epoch marks. Poll this to know when a nowait capture is ready or done. "
+            "404 = no timestamps yet / unknown session."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"session_id": _SESSION_ID_SCHEMA},
+            "required": ["session_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_session_timestamps,
+    },
+    {
+        "name": "hs_analysis_status",
+        "description": (
+            "GET /v0/sessions/analysis/status/{session_id} — whether report analyses are "
+            "done. timeout=0 (default here) checks current state without blocking; "
+            "optional track narrows to one analysis (e.g. video-quality-mos, page-load)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": _SESSION_ID_SCHEMA,
+                "timeout": {"type": "integer", "description": "Seconds to wait for completion (0 = check now, default)."},
+                "track": {"type": "string", "description": "Optional analysis key to track (e.g. page-load, video-quality-mos)."},
+            },
+            "required": ["session_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_analysis_status,
+    },
+    {
+        "name": "hs_session_timeseries_info",
+        "description": (
+            "GET /v0/sessions/timeseries/{session_id}/info — the device time series "
+            "available for this session (impact, memory_used, frame_rate, ...), each with "
+            "name/category/units. 'What occurred on the device' as measurable signals."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"session_id": _SESSION_ID_SCHEMA},
+            "required": ["session_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_session_timeseries_info,
+    },
+    {
+        "name": "hs_session_timeseries_download",
+        "description": (
+            "GET /v0/sessions/timeseries/{session_id}/download?key=K — download one time "
+            "series as CSV over the session timeline (key from hs_session_timeseries_info). "
+            "Saved to disk; returns {saved_to, bytes}, not the CSV body."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": _SESSION_ID_SCHEMA,
+                "key": {"type": "string", "description": "A time_series_key from hs_session_timeseries_info."},
+                "save_path": {"type": "string", "description": "Optional destination path (defaults under HS_DOWNLOAD_DIR)."},
+            },
+            "required": ["session_id", "key"],
+            "additionalProperties": False,
+        },
+        "handler": tool_session_timeseries_download,
+    },
+    {
+        "name": "hs_session_video_metadata",
+        "description": (
+            "GET /v0/sessions/{session_id}/video/metadata — screen-recording dimensions, "
+            "fps, duration, codec, and audio channels for the session."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"session_id": _SESSION_ID_SCHEMA},
+            "required": ["session_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_session_video_metadata,
+    },
+    {
+        "name": "hs_session_download",
+        "description": (
+            "GET /v0/sessions/{session_id}.{ext} — download a captured artifact to disk: "
+            "har (NETWORK WATERFALL), mar, csv, device.log.gz (DEVICE EVENTS), appium.log.gz, "
+            "mp4 (screen recording), pcap. Saved to disk; returns {saved_to, bytes, "
+            "content_type}, never the bytes. har supports enhanced=true; mp4 supports fps."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": _SESSION_ID_SCHEMA,
+                "ext": {"type": "string", "description": "har | mar | csv | mp4 | pcap | device.log.gz | appium.log.gz | selenium.log.gz | jsconsole.log.gz | sslkeylog.txt"},
+                "enhanced": {"type": "boolean", "description": "har only: include HTTP bodies (default false)."},
+                "fps": {"type": "integer", "description": "mp4 only: resample to a constant frame rate."},
+                "save_path": {"type": "string", "description": "Optional destination path (defaults under HS_DOWNLOAD_DIR)."},
+            },
+            "required": ["session_id", "ext"],
+            "additionalProperties": False,
+        },
+        "handler": tool_session_download,
+    },
+    {
+        "name": "hs_session_tls_exceptions",
+        "description": (
+            "GET /v0/sessions/{session_id}/tlsexceptions — {host: exception_count} for "
+            "hosts whose TLS pinning broke network capture (a real waterfall-gap signal)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"session_id": _SESSION_ID_SCHEMA},
+            "required": ["session_id"],
+            "additionalProperties": False,
+        },
+        "handler": tool_session_tls_exceptions,
     },
 ]
 

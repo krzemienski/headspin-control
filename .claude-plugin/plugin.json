@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "headspin-control",
   "displayName": "HeadSpin Device Control",
-  "version": "0.2.0",
-  "description": "HeadSpin device control for Claude Code: skills, slash commands, subagents, hooks, and a bundled MCP server. Authenticate to a HeadSpin environment, enumerate and lock real devices, drive them over documented REST/Appium surfaces, run automated exploration, and produce standardized bug reports. Validated against ui-dev.headspin.io for the 2026-07-02 session (see e2e-evidence/headspin-cook-260702/).",
+  "version": "1.2.0",
+  "description": "HeadSpin device control for Claude Code: skills, slash commands, subagents, hooks, and a bundled MCP server (20 REST tools). Authenticate to a HeadSpin environment, enumerate and lock real devices, drive them over documented REST/Appium surfaces, and \u2014 new in 1.1 \u2014 run full capture sessions end-to-end (adb lock/shell/start/stop capture, live-validated on real devices 2026-07-03), list capture sessions, pull Waterfall issue-card reports, download session artifacts (HAR network waterfall, screen-recording MP4, device event logs), and read device time series (memory, battery, network, video-quality). Every tool is a real Bearer-REST call, live-validated against api-dev.headspin.io captured sessions on 2026-07-02 (see e2e-evidence/headspin-forge-260702/v11-report-validation/).",
   "author": {
     "name": "HeadSpin Control Plugin Authors"
   },
@@ -18,7 +18,11 @@
     "android",
     "remote-control",
     "qa-automation",
-    "bug-reporting"
+    "bug-reporting",
+    "waterfall",
+    "session-capture",
+    "performance-report",
+    "network-har"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",

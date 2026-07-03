@@ -1,7 +1,5 @@
 # HeadSpin Control
 
-📖 **Docs site: [krzemienski.github.io/headspin-control](https://krzemienski.github.io/headspin-control/)** — interactive [architecture &amp; auth reference](https://krzemienski.github.io/headspin-control/docs.html) and a [17-slide walkthrough](https://krzemienski.github.io/headspin-control/deck.html).
-
 A Claude Code plugin for driving real devices on a [HeadSpin](https://www.headspin.io/)
 device farm: authenticate to an environment, enumerate and lock devices, connect and
 control iOS / Android, run automated exploration, and file standardized bug reports —
@@ -21,13 +19,24 @@ full-body raw capture; see `e2e-evidence/headspin-forge-260702/`).
 > Samsung SM-G981U (Galaxy S20) on Android — not a Roku. Treat the Roku *wire* as doc-sourced;
 > the *devices* are real.
 
-> **Live-validated 2026-07-02 (`func-validation-260702b/VERDICT.md`).** All 6 MCP tools were
-> exercised against real `api-dev.headspin.io` (login_details, list_devices→34, idevice_info,
-> installer_list, lock, unlock) and the lock lifecycle was proven end-to-end. The socket.io
-> and Janus control planes are reachable and TLS-valid but **require the browser-login
-> identity JWT / Janus secret**, not the account API token — obtain them via `/headspin:login`.
-> Exercising any live path needs a real HeadSpin API token for your environment, supplied via
-> config (`api_token` → `HS_API_TOKEN`/`CLAUDE_PLUGIN_OPTION_API_TOKEN`).
+> **Live-validated 2026-07-02 (`func-validation-260702b/VERDICT.md`).** All 6 original MCP
+> tools were exercised against real `api-dev.headspin.io` (login_details, list_devices→34,
+> idevice_info, installer_list, lock, unlock) and the lock lifecycle was proven end-to-end.
+> The socket.io and Janus control planes are reachable and TLS-valid but **require the
+> browser-login identity JWT / Janus secret**, not the account API token — obtain them via
+> `/headspin:login`. Exercising any live path needs a real HeadSpin API token for your
+> environment, supplied via config (`api_token` → `HS_API_TOKEN`/`CLAUDE_PLUGIN_OPTION_API_TOKEN`).
+
+> **New in 1.1 — sessions, reports, Waterfall, device events (LIVE-VALIDATED 2026-07-02,
+> `v11-report-validation/VERDICT.md`).** Bearer-REST MCP tools (20 total in 1.2.0) list capture
+> sessions, pull the Waterfall issue card, check analysis status, read/download device time
+> series, and download session artifacts. Validated against **real captured sessions**: a
+> video session returned **31 real time series** (memory, battery, net_cpu,
+> video_quality_mos, …), a **3,124,416-byte valid MP4** screen recording (`ftyp` magic), and
+> a **36 KB device.log.gz** that gunzips to real iOS syslog. Two new skills
+> (`headspin-reports`, `headspin-waterfall`) and two new commands (`/headspin:sessions`,
+> `/headspin:waterfall`). Every example in **[docs/USAGE.md](docs/USAGE.md)** shows the real
+> captured request/response.
 
 ---
 
@@ -35,8 +44,8 @@ full-body raw capture; see `e2e-evidence/headspin-forge-260702/`).
 
 | Type | Count | Items |
 |------|-------|-------|
-| Skills | 11 | `headspin-login`, `headspin-list-devices`, `headspin-connect-ios`, `headspin-connect-android`, `headspin-connect-roku`, `headspin-control-ios`, `headspin-control-roku`, `headspin-connection-manager`, `headspin-session-manager`, `headspin-explore-bugs`, `headspin-bug-report` |
-| Commands | 7 | `/headspin:setup`, `/headspin:login`, `/headspin:devices`, `/headspin:connect`, `/headspin:control`, `/headspin:explore`, `/headspin:report` |
+| Skills | 14 | `headspin-login`, `headspin-list-devices`, `headspin-connect-ios`, `headspin-connect-android`, `headspin-connect-roku`, `headspin-control-ios`, `headspin-control-roku`, `headspin-connection-manager`, `headspin-session-manager`, `headspin-explore-bugs`, `headspin-bug-report`, `headspin-reports`, `headspin-waterfall`, `headspin-capture` |
+| Commands | 10 | `/headspin:setup`, `/headspin:login`, `/headspin:devices`, `/headspin:connect`, `/headspin:control`, `/headspin:explore`, `/headspin:report`, `/headspin:sessions`, `/headspin:waterfall`, `/headspin:capture` |
 | Agents | 2 | `device-explorer`, `bug-reporter` |
 | Hooks | 3 | in `hooks/hooks.json` (token-safety + connection-lifecycle guards) |
 | MCP server | 1 | `headspin` (stdio, stdlib-only) at `mcp/headspin_mcp_server.py` |
@@ -73,6 +82,8 @@ below). The plugin ships `defaultEnabled: false`, so it stays inert until you tu
 > - **[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)** — day-by-day: log in, inspect a
 >   device, reserve/drive/release, and realize the value in a week. Explains the two-credential
 >   model (API token vs. browser-login identity JWT).
+> - **[docs/USAGE.md](docs/USAGE.md)** — every tool and command with the **real** captured
+>   request/response: sessions, reports, Waterfall/HAR, device event time series, artifacts.
 
 ---
 
@@ -145,18 +156,36 @@ credential.
 
 The bundled `headspin` MCP server (`mcp/headspin_mcp_server.py`) is a stdlib-only,
 JSON-RPC-2.0-over-stdio server. It reads `HS_API_TOKEN` and `HS_API_HOST` from the env
-(wired from `userConfig` in `.mcp.json`) and exposes four tools, each of which makes a
+(wired from `userConfig` in `.mcp.json`) and exposes **20 tools**, each of which makes a
 real HTTP call:
 
 | Tool | REST call | Purpose |
 |------|-----------|---------|
-| `hs_login_details` | `GET /v0/logindetails` | Validate the token; return account/environment |
-| `hs_list_devices` | `GET /v0/devices` | List devices (optional selector filter) |
-| `hs_lock_device` | `POST /v0/devices/lock` | Exclusively reserve a device |
-| `hs_unlock_device` | `POST /v0/devices/unlock` | Release a device lock |
+| `hs_login_details` | `GET /v0/logindetails` | Env/org probe (unauthenticated — reachability only) |
+| `hs_list_devices` | `GET /v0/devices` | List devices (first Bearer call = token validation) |
+| `hs_idevice_info` | `GET /v0/idevice/{addr}/info?json` | iOS lockdownd property dump |
+| `hs_installer_list` | `GET /v0/idevice/{addr}/installer/list?json` | iOS installed-app inventory |
+| `hs_lock_device` | `POST /v0/idevice/{addr}/lock` | Exclusively reserve a device |
+| `hs_unlock_device` | `POST /v0/idevice/{addr}/unlock` | Release a device lock |
+| `hs_list_sessions` | `GET /v0/sessions` | List capture sessions (`include_all` for ended) |
+| `hs_adb_lock` | `POST /v0/adb/{id}/lock` | Reserve an Android/Cast/FireTV device (LIVE-VERIFIED 2026-07-03) |
+| `hs_adb_unlock` | `POST /v0/adb/{id}/unlock` | Release an Android device lease |
+| `hs_adb_shell` | `POST /v0/adb/{id}/shell` | Run adb shell on a locked device — drive the UI over REST |
+| `hs_start_capture` | `POST /v0/sessions` | Start a capture session (video on) on a locked device |
+| `hs_stop_capture` | `PATCH /v0/sessions/{sid}` | Stop capture; MP4 uploads on success |
+| `hs_session_issues` | `GET /v0/sessions/analysis/issues/{sid}` | **Waterfall UI issue card** — the core report |
+| `hs_analysis_status` | `GET /v0/sessions/analysis/status/{sid}` | Are the report analyses done? |
+| `hs_session_timestamps` | `GET /v0/sessions/{sid}/timestamps` | Capture start/end/complete epoch marks |
+| `hs_session_timeseries_info` | `GET /v0/sessions/timeseries/{sid}/info` | Available device signals (up to 31 series) |
+| `hs_session_timeseries_download` | `GET /v0/sessions/timeseries/{sid}/download` | One series as CSV → disk |
+| `hs_session_video_metadata` | `GET /v0/sessions/{sid}/video/metadata` | Recording dims/fps/duration/codec |
+| `hs_session_download` | `GET /v0/sessions/{sid}.{ext}` | HAR / MP4 / device.log.gz / PCAP → disk |
+| `hs_session_tls_exceptions` | `GET /v0/sessions/{sid}/tlsexceptions` | Hosts whose TLS pinning broke capture |
 
-HTTP failures come back as tool results with `isError: true` carrying the HTTP status
-and response body, so failures are visible rather than swallowed.
+Downloads stream to `HS_DOWNLOAD_DIR` (default `/tmp/headspin-control/downloads/`) and
+return `{saved_to, bytes, content_type}` — never raw bytes. HTTP failures come back as
+tool results with `isError: true` carrying the HTTP status and response body, so
+failures are visible rather than swallowed.
 
 ---
 
@@ -203,11 +232,64 @@ The WebRTC screen view (and the iOS video leg gated by `CONTROL_WEBRTC_START`) r
 | `/headspin:devices` | List free/locked devices, filterable by platform and selector. |
 | `/headspin:connect` | Lock a device and open the right control path (iOS / Android / Roku). |
 | `/headspin:control` | Drive a connected device (taps, keys, screenshots, OCR). |
+| `/headspin:capture` | **(1.2.0)** Full capture lifecycle: lock → record → drive app → stop → report-ready. |
 | `/headspin:explore` | Run automated exploration to surface anomalies and crashes. |
 | `/headspin:report` | Produce a standardized bug report from exploration evidence. |
+| `/headspin:sessions` | List capture sessions; pull the report (issue card, status, time series). |
+| `/headspin:waterfall` | Download the Waterfall HAR / MP4 / device log / PCAP for a session. |
+
+### Worked example — capture a 5-minute YouTube session and pull everything
+
+Every response below is real, from the 2026-07-03 live validation run
+(`e2e-evidence/headspin-forge-260703/session-validation/`).
+
+```
+1. /headspin:devices
+   hs_list_devices → 34 devices; pick one with status 3 (online), e.g.
+   RFCN80FV2TA (SM-G981U) @ dev-ca-tor-0-proxy-20-lin.headspin.io
+
+2. /headspin:capture RFCN80FV2TA youtube 3.5
+   hs_adb_lock      {"device_id":"RFCN80FV2TA","timeout":30}
+                    → {"status": 0, "message": "RFCN80FV2TA@… locked."}
+   hs_start_capture {"device_address":"RFCN80FV2TA@dev-ca-tor-0-proxy-20-lin.headspin.io"}
+                    → {"session_id": "6543ba4e-76b2-11f1-ae1a-56284a680ba9"}
+   hs_adb_shell     {"device_id":"RFCN80FV2TA","command":"am start -a android.intent.action.VIEW -d https://m.youtube.com/shorts …"}
+   hs_adb_shell     {"device_id":"RFCN80FV2TA","command":"input swipe 400 1400 400 400 200"}   # ×21, ~every 10 s
+   hs_adb_shell     {"device_id":"RFCN80FV2TA","command":"dumpsys window | grep mCurrentFocus"}
+                    → stdout proves the app is foreground
+   hs_stop_capture  {"session_id":"6e163540-…"} → MP4 upload confirmed
+   hs_adb_unlock    {"device_id":"RFCN80FV2TA"}
+
+3. /headspin:sessions 6543ba4e
+   hs_analysis_status  → analysis pipeline status
+   hs_session_issues   → 8 issue cards (TLS Exceptions, Slow DNS Query, Loading
+                         Animation, Low Page Content, Duplicate DNS Query, …)
+   hs_session_timeseries_info → 50 series (frame_rate, memory_used, battery_temp, …)
+
+4. /headspin:waterfall 6543ba4e mp4
+   hs_session_download {"session_id":"6543ba4e-…","ext":"mp4"}
+                    → 132,587,822 bytes, h264 752x1664, 363.9 s — frame-verified:
+                      extracted stills show different Shorts advancing over 6 minutes
+```
+
+Gotchas the commands handle for you (learned the hard way, all reproduced live):
+- Start-capture on a device that just ended a session → 500; back off ~90 s.
+- Notification shade blocks app launch → recording shows the lock screen. Collapse the
+  shade and verify `mCurrentFocus` before driving.
+- MP4 fetched immediately after capture-complete can be a partial upload — the container
+  header already claims full duration. Check `ffprobe -count_packets ≈ duration × fps`.
+- The recorder is VFR: a static screen encodes few packets, so `video_duration_ms` can be
+  far below wall-clock. Session truth = `hs_session_timestamps`.
+- YouTube **app** on farm devices hits a Google sign-in wall (no account provisioned).
+  Drive `https://m.youtube.com/shorts` in Chrome for signed-out Shorts playback.
+- A device's recorder can be wired to the WRONG screen farm-side (one SM-G991U records
+  a Roku's screensaver). Fingerprint every MP4: `ffprobe -show_entries stream=width,height`
+  (phone ≈ 752x1664 portrait) and view extracted frames before trusting a capture.
 
 Typical flow: `/headspin:setup` → `/headspin:login` → `/headspin:devices` →
 `/headspin:connect` → `/headspin:control` (or `/headspin:explore`) → `/headspin:report`.
+After any capture: `/headspin:sessions` → `/headspin:waterfall`. Real request/response
+examples for every command: [docs/USAGE.md](docs/USAGE.md).
 
 ---
 
@@ -223,8 +305,9 @@ against that environment.
 ## Marketplace metadata
 
 - **Name:** `headspin-control`
-- **Version:** `0.2.0`
+- **Version:** `1.1.0`
 - **License:** MIT
 - **Keywords:** headspin, device-farm, roku, ios, android, remote-control,
-  qa-automation, bug-reporting
+  qa-automation, bug-reporting, waterfall, session-capture, performance-report,
+  network-har
 - **Default enabled:** false (opt-in via `/plugin`)
