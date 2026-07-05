@@ -27,6 +27,14 @@ full-body raw capture; see `e2e-evidence/headspin-forge-260702/`).
 > `/headspin:login`. Exercising any live path needs a real HeadSpin API token for your
 > environment, supplied via config (`api_token` → `HS_API_TOKEN`/`CLAUDE_PLUGIN_OPTION_API_TOKEN`).
 
+> **Full-system proof — 20/20 tools live-validated 2026-07-05
+> (`e2e-evidence/headspin-cook-260705/VALIDATION-REPORT.md`).** One run exercised every MCP
+> tool against the real API: a complete capture lifecycle on a real Galaxy S10
+> (lock → record → drive YouTube → stop → **6,899,682-byte MP4** + "Audio Too Quiet −30.8 LUFS"
+> issue card + 16 time series pulled to disk), plus a live lock/unlock cycle on a real
+> iPhone 11 proving the iOS REST reservation route. Worked examples below use those
+> actual responses.
+
 > **New in 1.1 — sessions, reports, Waterfall, device events (LIVE-VALIDATED 2026-07-02,
 > `v11-report-validation/VERDICT.md`).** Bearer-REST MCP tools (20 total in 1.2.0) list capture
 > sessions, pull the Waterfall issue card, check analysis status, read/download device time
@@ -286,6 +294,38 @@ Gotchas the commands handle for you (learned the hard way, all reproduced live):
   a Roku's screensaver). Fingerprint every MP4: `ffprobe -show_entries stream=width,height`
   (phone ≈ 752x1664 portrait) and view extracted frames before trusting a capture.
 
+### Worked example 2 — the 90-second smoke run (2026-07-05, every response real)
+
+The fastest possible end-to-end proof that your token, a device, and the whole
+report pipeline work — six tool calls, ~90 seconds of wall clock:
+
+```
+hs_adb_lock       {"device_id": "R38N70234FA", "timeout": 30}
+                  → {"status": 0, "message": "R38N70234FA@dev-ca-tor-0-proxy-2-lin… locked."}
+hs_start_capture  {"device_address": "R38N70234FA@dev-ca-tor-0-proxy-2-lin.headspin.io"}
+                  → {"session_id": "e8024cb0-788e-11f1-8491-da3445a29211", "state": "active"}
+hs_adb_shell      {"device_id": "R38N70234FA",
+                   "command": "am start -a android.intent.action.VIEW -d https://www.youtube.com"}
+hs_adb_shell      {"device_id": "R38N70234FA", "command": "input swipe 500 1500 500 500 300"}
+hs_stop_capture   {"session_id": "e8024cb0-…"}
+                  → {"msg": "Video uploaded to https://api-dev.headspin.io:443/v0/sessions/e8024cb0-….mp4"}
+hs_adb_unlock     {"device_id": "R38N70234FA"}
+```
+
+What the platform handed back for that 80-second session:
+
+```
+hs_session_video_metadata → 512×1184 h264, 23.105 fps, 80,111 ms, audio 1ch
+hs_analysis_status        → {"status": "done"}
+hs_session_issues         → {"Audio Too Quiet": {"Integrated Loudness (LUFS)": ["-30.8"]}}
+hs_session_timeseries_info→ 16 series (impact, network, download_rate, blurriness, screen_change, …)
+hs_session_download mp4   → {"bytes": 6899682, "content_type": "video/mp4"}   # the actual recording
+```
+
+The issue card genuinely caught something: the tab played muted, and the Waterfall
+analysis flagged it at −30.8 LUFS. That is the report pipeline working on your data,
+not a canned demo.
+
 Typical flow: `/headspin:setup` → `/headspin:login` → `/headspin:devices` →
 `/headspin:connect` → `/headspin:control` (or `/headspin:explore`) → `/headspin:report`.
 After any capture: `/headspin:sessions` → `/headspin:waterfall`. Real request/response
@@ -305,7 +345,7 @@ against that environment.
 ## Marketplace metadata
 
 - **Name:** `headspin-control`
-- **Version:** `1.1.0`
+- **Version:** `1.2.0`
 - **License:** MIT
 - **Keywords:** headspin, device-farm, roku, ios, android, remote-control,
   qa-automation, bug-reporting, waterfall, session-capture, performance-report,

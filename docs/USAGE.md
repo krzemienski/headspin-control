@@ -1,10 +1,15 @@
-# headspin-control — Usage Examples (v1.1)
+# headspin-control — Usage Examples (v1.2)
 
 Every example below shows **real request → real response** captured against live
-`api-dev.headspin.io` on 2026-07-02 (evidence:
-`e2e-evidence/headspin-forge-260702/`). Session IDs, byte counts, and series names
-are actual values, not invented. Device serials and owner emails are redacted to
-their first 8 characters.
+`api-dev.headspin.io` (full passes 2026-07-02, 2026-07-03, and 2026-07-05; evidence:
+`e2e-evidence/headspin-forge-260702/`, `…-forge-260703/`, `…-cook-260705/`).
+Session IDs, byte counts, and series names are actual values, not invented.
+Device serials and owner emails are redacted to their first 8 characters.
+
+**Latest full-system proof (2026-07-05):** all 20 tools in one run — capture
+lifecycle on a Galaxy S10 (session `e8024cb0`, 6,899,682-byte MP4, "Audio Too
+Quiet −30.8 LUFS" issue card, 16 time series) plus a live iOS lock/unlock cycle
+on an iPhone 11 (`status:0` both directions).
 
 Sections:
 
@@ -98,8 +103,13 @@ Both are iOS-only routes. Android/Roku inventory arrives via the roster
 
 ```
 hs_lock_device   { "device_address": "<udid>@<proxy-host>.headspin.io" }
+→ {"status": 0, "message": "00008030-…@dev-ca-tor-0-proxy-3-mac.headspin.io locked."}
 hs_unlock_device { "device_address": "<udid>@<proxy-host>.headspin.io" }
+→ {"status": 0, "message": "00008030-…@dev-ca-tor-0-proxy-3-mac.headspin.io unlocked."}
 ```
+
+Both responses above are real (2026-07-05, iPhone 11). Android/Cast/FireTV use the
+`hs_adb_lock` / `hs_adb_unlock` pair instead — same `status: 0` contract.
 
 **Live-corrected gotcha:** a bare `lock_id` UUID in the roster is an *ambient idle
 marker* — 13 of 33 online devices carried one at rest with nobody holding them.
@@ -284,8 +294,11 @@ Offer alongside the raw data: `https://<ui_host>/sessions/<sid>/waterfall`.
 
 ## 7.5 Capture lifecycle: record a session end-to-end (v1.2.0)
 
-LIVE-VALIDATED 2026-07-03 — three ~5-min YouTube captures on real Samsung devices
-(`e2e-evidence/headspin-forge-260703/session-validation/`).
+LIVE-VALIDATED 2026-07-03 (three ~5-min YouTube captures,
+`e2e-evidence/headspin-forge-260703/session-validation/`) and re-proven 2026-07-05
+end-to-end in one 90-second run (session `e8024cb0`, Galaxy S10: 6,899,682-byte MP4,
+issue card "Audio Too Quiet −30.8 LUFS", 16 time series, `screen_change` CSV 67,767 B —
+`e2e-evidence/headspin-cook-260705/VALIDATION-REPORT.md`).
 
 ```
 hs_adb_lock          { "device_id": "RFCN80FV2TA", "timeout": 30 }

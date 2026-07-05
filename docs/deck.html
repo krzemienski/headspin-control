@@ -267,11 +267,11 @@
     <p class="slide__label reveal">// footprint</p>
     <h2 class="slide__heading reveal">One plugin, six moving parts.</h2>
     <div class="slide__kpis reveal">
-      <div class="slide__kpi a"><div class="slide__kpi-val">11</div><div class="slide__kpi-label">Skills</div></div>
-      <div class="slide__kpi"><div class="slide__kpi-val">7</div><div class="slide__kpi-label">Commands</div></div>
+      <div class="slide__kpi a"><div class="slide__kpi-val">14</div><div class="slide__kpi-label">Skills</div></div>
+      <div class="slide__kpi"><div class="slide__kpi-val">10</div><div class="slide__kpi-label">Commands</div></div>
       <div class="slide__kpi"><div class="slide__kpi-val">2</div><div class="slide__kpi-label">Agents</div></div>
       <div class="slide__kpi"><div class="slide__kpi-val">3</div><div class="slide__kpi-label">Hooks</div></div>
-      <div class="slide__kpi g"><div class="slide__kpi-val">6</div><div class="slide__kpi-label">MCP Tools</div></div>
+      <div class="slide__kpi g"><div class="slide__kpi-val">20</div><div class="slide__kpi-label">MCP Tools</div></div>
       <div class="slide__kpi c"><div class="slide__kpi-val">34<small> live</small></div><div class="slide__kpi-label">Devices Validated</div></div>
     </div>
   </section>
@@ -299,8 +299,8 @@
       </div>
       <pre class="mermaid">
 flowchart TD
-  CMD["/headspin commands"] --> SK["11 Skills"]
-  SK --> MCP["MCP server<br/>6 REST tools"]
+  CMD["/headspin commands"] --> SK["14 Skills"]
+  SK --> MCP["MCP server<br/>20 REST tools"]
   SK --> CM["connection-manager"]
   SK --> SM["session-manager<br/>lock / unlock"]
   MCP -->|"Bearer token"| REST[("REST /v0")]
@@ -331,8 +331,9 @@ flowchart TD
         <ul>
           <li><code>:setup</code> <code>:login</code></li>
           <li><code>:devices</code> <code>:connect</code></li>
-          <li><code>:control</code> <code>:explore</code></li>
-          <li><code>:report</code></li>
+          <li><code>:control</code> <code>:capture</code></li>
+          <li><code>:explore</code> <code>:report</code></li>
+          <li><code>:sessions</code> <code>:waterfall</code></li>
         </ul>
       </div>
       <div>
@@ -341,8 +342,9 @@ flowchart TD
         <ul class="slide__bullets">
           <li class="reveal"><b>Auth &amp; discovery</b> — login, list-devices, session &amp; connection managers</li>
           <li class="reveal"><b>Connect &amp; control</b> — iOS (Appium xcuitest), Android (socket.io input.*), Roku</li>
+          <li class="reveal"><b>Capture &amp; report</b> — full record lifecycle, Waterfall reports, artifact download</li>
           <li class="reveal"><b>Explore &amp; report</b> — device-explorer + bug-reporter agents</li>
-          <li class="reveal"><b>MCP + hooks</b> — 6 stdlib REST tools, token-safety &amp; auto-release guards</li>
+          <li class="reveal"><b>MCP + hooks</b> — 20 stdlib REST tools, token-safety &amp; auto-release guards</li>
         </ul>
       </div>
     </div>
@@ -396,29 +398,93 @@ flowchart TD
     <div class="dv">
       <p class="slide__label reveal">// section</p>
       <h2 class="slide__heading reveal">Validation</h2>
-      <p class="slide__subtitle reveal">real system &middot; no mocks &middot; 2026-07-02</p>
+      <p class="slide__subtitle reveal">real system &middot; no mocks &middot; latest full pass 2026-07-05</p>
     </div>
   </section>
 
-  <!-- 11 TABLE — MCP tools -->
+  <!-- 11 TABLE — MCP tools: capture lifecycle (live 2026-07-05) -->
   <section class="slide slide--table">
-    <p class="slide__label reveal">// mcp surface</p>
-    <h2 class="slide__heading reveal">20 / 20 tools, real JSON-RPC.</h2>
+    <p class="slide__label reveal">// mcp surface · 1 of 2 · live 2026-07-05</p>
+    <h2 class="slide__heading reveal">20 / 20 tools — the capture lifecycle, run for real.</h2>
     <div class="table-wrap reveal">
       <div class="table-scroll">
         <table class="data">
-          <thead><tr><th>Tool</th><th>Live result</th><th></th></tr></thead>
+          <thead><tr><th>Tool</th><th>Live result <small>Galaxy S10 · Toronto · session e8024cb0</small></th><th></th></tr></thead>
           <tbody>
             <tr><td><code>hs_login_details</code></td><td>200 · org/env probe</td><td><span class="st pass">Pass</span></td></tr>
-            <tr><td><code>hs_list_devices</code></td><td><b>34 devices</b> · 5 platforms</td><td><span class="st pass">Pass</span></td></tr>
-            <tr><td><code>hs_idevice_info</code></td><td>83 fields · iPhone17,1 · iOS 26.4.1</td><td><span class="st pass">Pass</span></td></tr>
-            <tr><td><code>hs_installer_list</code></td><td>11 apps · webdriveragent</td><td><span class="st pass">Pass</span></td></tr>
-            <tr><td><code>hs_lock_device</code></td><td>200 · reserved (owner attached)</td><td><span class="st pass">Pass</span></td></tr>
-            <tr><td><code>hs_unlock_device</code></td><td>200 · released → free</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_list_devices</code></td><td><b>34 devices</b> · 33 online · 5 platforms</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_adb_lock</code></td><td><code>status:0</code> · R38N70234FA reserved</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_adb_shell</code></td><td><code>getprop</code> → <b>SM-G973W</b> · swipes/taps rc=0</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_start_capture</code></td><td>session active · video on</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_stop_capture</code></td><td>"Video uploaded to …e8024cb0….mp4"</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_session_download</code></td><td><b>6,899,682-byte MP4</b> · 512×1184 h264</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_adb_unlock</code></td><td><code>status:0</code> · device released</td><td><span class="st pass">Pass</span></td></tr>
           </tbody>
         </table>
       </div>
     </div>
+  </section>
+
+  <!-- 11b TABLE — MCP tools: reports & iOS (live 2026-07-05) -->
+  <section class="slide slide--table">
+    <p class="slide__label reveal">// mcp surface · 2 of 2 · live 2026-07-05</p>
+    <h2 class="slide__heading reveal">…then read the report of what just happened.</h2>
+    <div class="table-wrap reveal">
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>Tool</th><th>Live result <small>same session + real iPhone 11</small></th><th></th></tr></thead>
+          <tbody>
+            <tr><td><code>hs_analysis_status</code></td><td><code>done</code> · report pipeline finished</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_session_issues</code></td><td>Waterfall card: <b>"Audio Too Quiet" −30.8 LUFS</b></td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_session_timestamps</code></td><td>start/end/complete epochs · 79.9 s span</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_session_video_metadata</code></td><td>23.105 fps · 80,111 ms · audio 1ch</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_session_timeseries_info</code> <small>+ download</small></td><td>16 series · <code>screen_change</code> → 67,767-byte CSV</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_session_tls_exceptions</code> · <code>hs_list_sessions</code></td><td><code>{}</code> clean · session listed, ended, no error</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_idevice_info</code> · <code>hs_installer_list</code></td><td>iPhone12,1 · iOS 14.4.2 · 6 apps</td><td><span class="st pass">Pass</span></td></tr>
+            <tr><td><code>hs_lock_device</code> · <code>hs_unlock_device</code></td><td><code>status:0</code> both ways — iOS REST lock <b>proven live</b></td><td><span class="st pass">Pass</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11c CODE — worked example: capture a session -->
+  <section class="slide" style="align-items:center;">
+    <p class="slide__label reveal">// worked example · exactly as run 2026-07-05</p>
+    <h2 class="slide__heading reveal" style="text-align:center;">Record a real device in six calls.</h2>
+    <div class="reveal" style="background:var(--code-bg);border:1px solid var(--border-bright);border-radius:12px;padding:clamp(20px,3.5vh,40px) clamp(20px,3.5vw,44px);max-width:980px;width:100%;position:relative;margin-top:clamp(14px,2.5vh,26px);">
+      <span style="position:absolute;top:-12px;left:24px;font-family:var(--font-mono);font-size:11px;font-weight:600;padding:4px 12px;border-radius:4px;background:var(--accent);color:var(--bg);">/headspin:capture — under the hood</span>
+      <pre style="margin:0;overflow-x:auto;"><code style="font-family:var(--font-mono);font-size:clamp(12px,1.45vw,16px);line-height:1.75;color:var(--code-text);">hs_adb_lock       {"device_id": "R38N70234FA", "timeout": 30}
+<span style="color:var(--text-dim);">→ {"status": 0, "message": "R38N70234FA@dev-ca-tor-0-proxy-2-lin… locked."}</span>
+hs_start_capture  {"device_address": "R38N70234FA@dev-ca-tor-0-proxy-2-lin.headspin.io"}
+<span style="color:var(--text-dim);">→ {"session_id": "e8024cb0-788e-11f1-8491-da3445a29211", "state": "active"}</span>
+hs_adb_shell      {"device_id": "R38N70234FA", "command": "am start -a android.intent.action.VIEW -d https://www.youtube.com"}
+hs_adb_shell      {"device_id": "R38N70234FA", "command": "input swipe 500 1500 500 500 300"}
+hs_stop_capture   {"session_id": "e8024cb0-…"}
+<span style="color:var(--text-dim);">→ {"msg": "Video uploaded to https://api-dev.headspin.io:443/v0/sessions/e8024cb0-….mp4"}</span>
+hs_adb_unlock     {"device_id": "R38N70234FA"}   <span style="color:var(--accent);"># always release</span></code></pre>
+    </div>
+    <p class="slide__subtitle reveal" style="text-align:center;margin-top:16px;">Result: an 80-second, 6.9&nbsp;MB h264 recording of the drive — pulled to disk with <code>hs_session_download</code>.</p>
+  </section>
+
+  <!-- 11d CODE — worked example: read the report -->
+  <section class="slide" style="align-items:center;">
+    <p class="slide__label reveal">// worked example · report retrieval</p>
+    <h2 class="slide__heading reveal" style="text-align:center;">Then ask what the platform saw.</h2>
+    <div class="reveal" style="background:var(--code-bg);border:1px solid var(--border-bright);border-radius:12px;padding:clamp(20px,3.5vh,40px) clamp(20px,3.5vw,44px);max-width:980px;width:100%;position:relative;margin-top:clamp(14px,2.5vh,26px);">
+      <span style="position:absolute;top:-12px;left:24px;font-family:var(--font-mono);font-size:11px;font-weight:600;padding:4px 12px;border-radius:4px;background:var(--cyan);color:var(--bg);">/headspin:sessions + /headspin:waterfall</span>
+      <pre style="margin:0;overflow-x:auto;"><code style="font-family:var(--font-mono);font-size:clamp(12px,1.45vw,16px);line-height:1.75;color:var(--code-text);">hs_analysis_status           {"session_id": "e8024cb0-…"}
+<span style="color:var(--text-dim);">→ {"status": "done", "message": "Analysis completed for the session."}</span>
+hs_session_issues            {"session_id": "e8024cb0-…"}
+<span style="color:var(--text-dim);">→ {"Audio Too Quiet": {"Integrated Loudness (LUFS)": ["-30.8"]}}</span>
+hs_session_timeseries_info   {"session_id": "e8024cb0-…"}
+<span style="color:var(--text-dim);">→ 16 series: impact, network_in/out, download_rate, blurriness, screen_change, …</span>
+hs_session_timeseries_download {"session_id": "e8024cb0-…", "key": "screen_change"}
+<span style="color:var(--text-dim);">→ {"saved_to": "…/screen_change.csv", "bytes": 67767}</span>
+hs_session_download          {"session_id": "e8024cb0-…", "ext": "mp4"}
+<span style="color:var(--text-dim);">→ {"saved_to": "…/session-e8024cb0.mp4", "bytes": 6899682, "content_type": "video/mp4"}</span></code></pre>
+    </div>
+    <p class="slide__subtitle reveal" style="text-align:center;margin-top:16px;">Every line above is a captured live response — the issue card even flagged the muted YouTube tab.</p>
   </section>
 
   <!-- 12 SPLIT — lock defect -->
@@ -524,10 +590,11 @@ flowchart TD
       <h2 class="slide__display reveal" style="font-size:clamp(38px,7vw,84px);">Live-validated,<br>no mocks.</h2>
       <p class="repo reveal">▸ github.com/krzemienski/<b>headspin-control</b></p>
       <div class="tags reveal">
-        <span class="chip"><b>37 files</b></span>
+        <span class="chip"><b>v1.2.0</b></span>
         <span class="chip gold"><b>MIT</b></span>
         <span class="chip">plugin validate ✔</span>
-        <span class="chip">6/6 MCP tools live</span>
+        <span class="chip">20/20 MCP tools live</span>
+        <span class="chip">full capture lifecycle proven</span>
       </div>
     </div>
   </section>

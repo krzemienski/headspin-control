@@ -67,11 +67,11 @@ Validating marketplace manifest: .../headspin-control/.claude-plugin/marketplace
 
 | Type | Count | Entry points |
 |------|-------|--------------|
-| Skills | 11 | model-invoked; Claude chains them autonomously |
-| Commands | 7 | `/headspin:setup` `/headspin:login` `/headspin:devices` `/headspin:connect` `/headspin:control` `/headspin:explore` `/headspin:report` |
+| Skills | 14 | model-invoked; Claude chains them autonomously |
+| Commands | 10 | `/headspin:setup` `/headspin:login` `/headspin:devices` `/headspin:connect` `/headspin:control` `/headspin:capture` `/headspin:explore` `/headspin:report` `/headspin:sessions` `/headspin:waterfall` |
 | Agents | 2 | `device-explorer`, `bug-reporter` |
 | Hooks | 3 | token-safety + connection-lifecycle guards (`hooks/hooks.json`) |
-| MCP server | 1 | `headspin` (stdio, stdlib-only) — 6 REST tools |
+| MCP server | 1 | `headspin` (stdio, stdlib-only) — 20 REST tools |
 
 ---
 

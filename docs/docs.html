@@ -342,8 +342,8 @@
       <script type="text/plain" class="diagram-source">
 flowchart TD
   U(("User")) --> CMD["/headspin: commands<br/>setup login devices connect<br/>control explore report"]
-  CMD --> SK["11 Skills<br/>login list-devices connect/control<br/>managers explore report"]
-  SK --> MCP["MCP server (stdio)<br/>6 REST tools"]
+  CMD --> SK["14 Skills<br/>login list-devices connect/control<br/>capture reports waterfall<br/>managers explore report"]
+  SK --> MCP["MCP server (stdio)<br/>20 REST tools"]
   SK --> CM["connection-manager"]
   SK --> SM["session-manager<br/>lock / unlock"]
   SK --> AG["Agents<br/>device-explorer<br/>bug-reporter"]
@@ -397,6 +397,14 @@ flowchart TD
         </ul>
       </div>
       <div class="ve-card">
+        <div class="ve-card__label">Capture &amp; Reports <small>(new in 1.1–1.2)</small></div>
+        <ul class="node-list">
+          <li><code>headspin-capture</code> — lock → record → drive → stop</li>
+          <li><code>headspin-reports</code> — issue card, status, time series</li>
+          <li><code>headspin-waterfall</code> — HAR / MP4 / device-log download</li>
+        </ul>
+      </div>
+      <div class="ve-card">
         <div class="ve-card__label">Explore &amp; Report</div>
         <ul class="node-list">
           <li><code>headspin-explore-bugs</code> — autonomous drive</li>
@@ -410,13 +418,14 @@ flowchart TD
         <ul class="node-list">
           <li><code>/headspin:setup</code> · <code>:login</code></li>
           <li><code>/headspin:devices</code> · <code>:connect</code></li>
-          <li><code>/headspin:control</code> · <code>:explore</code></li>
-          <li><code>/headspin:report</code></li>
+          <li><code>/headspin:control</code> · <code>:capture</code></li>
+          <li><code>/headspin:explore</code> · <code>:report</code></li>
+          <li><code>/headspin:sessions</code> · <code>:waterfall</code></li>
         </ul>
       </div>
       <div class="ve-card ve-card--green">
         <div class="ve-card__label">MCP Server</div>
-        <p>Stdlib-only stdio JSON-RPC 2.0. Six REST tools, every one a real HTTPS call — no stubbed responses. Errors surface the live HTTP status + body.</p>
+        <p>Stdlib-only stdio JSON-RPC 2.0. Twenty REST tools — device roster, lock/shell, full capture lifecycle, Waterfall reports, time series, artifact downloads — every one a real HTTPS call, no stubbed responses. Errors surface the live HTTP status + body.</p>
       </div>
       <div class="ve-card ve-card--amber">
         <div class="ve-card__label">Hooks</div>
@@ -490,18 +499,28 @@ flowchart TD
     <div class="sec-head">
       <span class="sec-num">04</span>
       <h2>MCP Tools</h2>
-      <p>6 / 6 exercised over real JSON-RPC stdio</p>
+      <p>20 / 20 exercised over real JSON-RPC stdio · latest full pass 2026-07-05</p>
     </div>
     <div class="table-wrap"><div class="table-scroll">
       <table class="data">
         <thead><tr><th>Tool</th><th>REST call</th><th>Live result</th><th></th></tr></thead>
         <tbody>
           <tr><td><code>hs_login_details</code></td><td><code>GET /v0/logindetails</code></td><td class="wide">200 · org/env probe (unauthenticated)</td><td><span class="status status--pass">Pass</span></td></tr>
-          <tr><td><code>hs_list_devices</code></td><td><code>GET /v0/devices</code></td><td class="wide"><strong>34 devices</strong> · android/ios/roku/safari/tizentv</td><td><span class="status status--pass">Pass</span></td></tr>
-          <tr><td><code>hs_idevice_info</code></td><td><code>GET /v0/idevice/&lbrace;addr&rbrace;/info</code></td><td class="wide">83 fields · iPhone17,1 · iOS 26.4.1</td><td><span class="status status--pass">Pass</span></td></tr>
-          <tr><td><code>hs_installer_list</code></td><td><code>GET .../installer/list</code></td><td class="wide">11 apps · <code>io.headspin.webdriveragent</code></td><td><span class="status status--pass">Pass</span></td></tr>
-          <tr><td><code>hs_lock_device</code></td><td><code>POST .../lock</code></td><td class="wide">200 · device reserved (owner attached)</td><td><span class="status status--pass">Pass</span></td></tr>
-          <tr><td><code>hs_unlock_device</code></td><td><code>POST .../unlock</code></td><td class="wide">200 · released, owner cleared → free</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_list_devices</code></td><td><code>GET /v0/devices</code></td><td class="wide"><strong>34 devices</strong> · 33 online · android/ios/roku/safari/tizentv</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_idevice_info</code></td><td><code>GET /v0/idevice/&lbrace;addr&rbrace;/info</code></td><td class="wide">lockdownd dump · iPhone12,1 · iOS 14.4.2</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_installer_list</code></td><td><code>GET .../installer/list</code></td><td class="wide">6 apps · <code>io.headspin.webdriveragent</code></td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_lock_device</code> / <code>hs_unlock_device</code></td><td><code>POST .../lock|unlock</code></td><td class="wide"><code>status:0</code> both directions on a real iPhone 11 — route proven live</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_adb_lock</code> / <code>hs_adb_unlock</code></td><td><code>POST /v0/adb/&lbrace;id&rbrace;/lock|unlock</code></td><td class="wide"><code>status:0</code> · Galaxy S10 reserved &amp; released</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_adb_shell</code></td><td><code>POST /v0/adb/&lbrace;id&rbrace;/shell</code></td><td class="wide"><code>getprop</code> → SM-G973W · swipes, taps, <code>am start</code> all rc=0</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_start_capture</code> / <code>hs_stop_capture</code></td><td><code>POST|PATCH /v0/sessions</code></td><td class="wide">session e8024cb0 recorded 80 s · "Video uploaded" confirmed</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_list_sessions</code></td><td><code>GET /v0/sessions</code></td><td class="wide">session listed first · state=ended · error_code=null</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_analysis_status</code></td><td><code>GET .../analysis/status</code></td><td class="wide"><code>done</code> · "Analysis completed for the session."</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_session_issues</code></td><td><code>GET .../analysis/issues</code></td><td class="wide">Waterfall card: "Audio Too Quiet" −30.8 LUFS</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_session_timestamps</code></td><td><code>GET .../timestamps</code></td><td class="wide">capture start/end/complete epochs · 79.9 s span</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_session_video_metadata</code></td><td><code>GET .../video/metadata</code></td><td class="wide">512×1184 h264 · 23.105 fps · 80,111 ms · audio 1ch</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_session_timeseries_info</code> / <code>_download</code></td><td><code>GET .../timeseries/…</code></td><td class="wide">16 series · <code>screen_change</code> CSV 67,767 bytes to disk</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_session_download</code></td><td><code>GET /v0/sessions/&lbrace;sid&rbrace;.&lbrace;ext&rbrace;</code></td><td class="wide">6,899,682-byte MP4 to disk · HAR 404 surfaced verbatim (no network capture — correct)</td><td><span class="status status--pass">Pass</span></td></tr>
+          <tr><td><code>hs_session_tls_exceptions</code></td><td><code>GET .../tlsexceptions</code></td><td class="wide"><code>{}</code> · no TLS-pinning capture gaps</td><td><span class="status status--pass">Pass</span></td></tr>
         </tbody>
       </table>
     </div></div>
@@ -512,12 +531,12 @@ flowchart TD
     <div class="sec-head">
       <span class="sec-num">05</span>
       <h2>Validation Results</h2>
-      <p>2026-07-02 · real system, no mocks</p>
+      <p>full passes 2026-07-02 / 07-03 / 07-05 · real system, no mocks</p>
     </div>
     <div class="card-grid">
       <div class="ve-card ve-card--green">
         <div class="ve-card__label">MCP surface · PASS</div>
-        <p>All six tools driven end-to-end through a real subprocess speaking newline-delimited JSON-RPC to live <code class="inline-code">api-dev</code>. Missing-argument path correctly returns <code class="inline-code">isError</code> — proof of real validation, not a stub.</p>
+        <p>All 20 tools driven end-to-end against live <code class="inline-code">api-dev</code>. The 2026-07-05 pass ran a complete capture lifecycle on a real Galaxy S10 — lock → record → drive YouTube → stop → 6.9&nbsp;MB MP4 + issue card + 16 time series pulled to disk — and proved the iOS REST lock/unlock route live on an iPhone 11.</p>
       </div>
       <div class="ve-card ve-card--green">
         <div class="ve-card__label">Lock lifecycle · PASS</div>

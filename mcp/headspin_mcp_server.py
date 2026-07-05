@@ -24,10 +24,10 @@ Endpoint provenance:
   hs_idevice_info   — GET /v0/idevice/{addr}/info?json      → HAR-OBSERVED (Bearer).
   hs_installer_list — GET /v0/idevice/{addr}/installer/list?json → HAR-OBSERVED (Bearer).
   hs_lock_device / hs_unlock_device — POST /v0/idevice/{addr}/lock|unlock →
-                      DOC-INFERRED, NOT HAR-verified in this environment. The only
-                      lock signal actually observed in the capture is lock STATE in
-                      the socket.io `devicelist[].lockId`/`owner`/`using` fields
-                      (a WebSocket surface this REST server does not reach).
+                      LIVE-VERIFIED 2026-07-05: full lock+unlock cycle on a real
+                      iPhone 11 (00008030-…402E@dev-ca-tor-0-proxy-3-mac) returned
+                      status:0 both directions. (Lock STATE also mirrors into the
+                      socket.io `devicelist[].lockId`/`owner`/`using` fields.)
 Android / Cast / Fire TV inventory is NOT a REST route — it is the socket.io
 `devicelist` event on the control ports; `/v0/devices*` is never called in the
 capture and is not exposed here.
@@ -69,7 +69,7 @@ def _ssl():
 
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "headspin"
-SERVER_VERSION = "1.1.0"
+SERVER_VERSION = "1.2.0"
 DEFAULT_HOST = "https://api-dev.headspin.io"
 HTTP_TIMEOUT = 30
 
@@ -534,9 +534,9 @@ TOOLS = [
         "name": "hs_lock_device",
         "description": (
             "POST /v0/idevice/{device_address}/lock — reserve an iOS device. "
-            "DOC-INFERRED / NOT HAR-verified in this environment: the only observed lock "
-            "signal is state in the socket.io `devicelist` (lockId/owner/using), which "
-            "this REST server does not reach. Expect this route may not exist here."
+            "LIVE-VERIFIED 2026-07-05: lock+unlock cycle on a real iPhone 11 returned "
+            "status:0 both directions. Counterpart of hs_adb_lock (Android). Always "
+            "pair with hs_unlock_device on exit."
         ),
         "inputSchema": {
             "type": "object",
@@ -550,7 +550,8 @@ TOOLS = [
         "name": "hs_unlock_device",
         "description": (
             "POST /v0/idevice/{device_address}/unlock — release an iOS device lock. "
-            "DOC-INFERRED / NOT HAR-verified in this environment (see hs_lock_device)."
+            "LIVE-VERIFIED 2026-07-05 (see hs_lock_device). Always call after a lock, "
+            "even on error paths."
         ),
         "inputSchema": {
             "type": "object",

@@ -116,9 +116,10 @@ By the end of week one you have, without leaving Claude Code:
 - **Filable bugs** — autonomous exploration → standardized report, evidence attached.
 
 Everything is against the **real** API. There are no mocks anywhere in the plugin — the
-2026-07-02 validation exercised all 6 MCP tools live, proved the lock lifecycle, and
-characterized the control/streaming planes end to end
-(`e2e-evidence/headspin-forge-260702/func-validation-260702b/VERDICT.md`).
+2026-07-05 validation exercised all 20 MCP tools live: a full capture lifecycle on a real
+Galaxy S10 (lock → record → drive → 6.9 MB MP4 + issue card + 16 time series), a live
+iOS lock/unlock cycle on a real iPhone 11, and the control/streaming planes characterized
+end to end (`e2e-evidence/headspin-cook-260705/VALIDATION-REPORT.md`).
 
 ---
 
