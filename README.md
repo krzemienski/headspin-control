@@ -290,9 +290,12 @@ Gotchas the commands handle for you (learned the hard way, all reproduced live):
   far below wall-clock. Session truth = `hs_session_timestamps`.
 - YouTube **app** on farm devices hits a Google sign-in wall (no account provisioned).
   Drive `https://m.youtube.com/shorts` in Chrome for signed-out Shorts playback.
-- A device's recorder can be wired to the WRONG screen farm-side (one SM-G991U records
-  a Roku's screensaver). Fingerprint every MP4: `ffprobe -show_entries stream=width,height`
-  (phone ≈ 752x1664 portrait) and view extracted frames before trusting a capture.
+- A device's recorder can be wired to the WRONG screen farm-side — now reproduced live
+  **twice**: an SM-G991U recording a Roku screensaver (2026-07-03) and an SM-G973W capture
+  that recorded an iPhone 11's home screen (2026-07-05, session `e8024cb0` — frame
+  fingerprint matched the iPhone's exact installed-app inventory). Fingerprint every MP4:
+  `ffprobe -show_entries stream=width,height`, then **view extracted frames and match
+  visible content against the target device** before trusting a capture. Non-negotiable.
 
 ### Worked example 2 — the 90-second smoke run (2026-07-05, every response real)
 

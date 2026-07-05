@@ -44,6 +44,26 @@ lifecycle executed on a real Samsung SM-G973W (Galaxy S10, Android 12, Toronto p
 proven live this run (lock + unlock cycle on a real iPhone 11, status:0 both directions).
 Descriptions corrected to LIVE-VERIFIED 2026-07-05.
 
+## Frame verification — farm-side recorder-miswiring defect reproduced
+
+Per the plugin's own gotcha ("fingerprint every MP4, view frames before trusting a capture"),
+3 frames were extracted from `session-e8024cb0.mp4` (`frames/f1.jpg`–`f3.jpg`, ffmpeg
+`select=eq(n,N)` decode-order). **They show an iPhone home screen, not the Galaxy S10 that
+was driven.** Attribution is conclusive: the visible app set (Tether, Tether2, masterhand ×2,
+WebDriverAgent…, iDevice Test APP) exactly matches the 6-app `hs_installer_list` inventory of
+iPhone 11 `00008030-…402E` on the same Toronto proxy cluster, and the on-screen clock
+(12:31, America/Toronto) matches that device's `hs_idevice_info` timezone.
+
+Meaning:
+- The adb drive itself was real and correctly targeted — `hs_adb_shell getprop` returned
+  `SM-G973W` from the locked device, `mCurrentFocus` showed SBrowser.
+- The **video recorder assigned to R38N70234FA is wired to the iPhone's screen rig** —
+  a farm-side infrastructure defect, second confirmed instance (first: R3CR40B0M9L
+  recording a Roku screensaver, 2026-07-03).
+- Every MCP tool still honored its API contract (the MP4 is the real bytes the platform
+  recorded and uploaded); the defect is upstream of the plugin. The frame-fingerprint
+  gotcha in README/USAGE is now backed by two live reproductions and is mandatory practice.
+
 ## Iron-rule compliance
 
 - No mocks, stubs, or fixtures — every result above is a real HTTP response from api-dev.headspin.io.
