@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HeadSpin Control — Capabilities</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body:'Geist Mono','SF Mono',Consolas,monospace; --font-mono:'Geist Mono','SF Mono',Consolas,monospace;
+    --bg:#0a0e14; --surface:#12161e; --surface2:#1a1f2a; --surface-elevated:#222836;
+    --border:rgba(80,250,123,0.07); --border-bright:rgba(80,250,123,0.16);
+    --text:#c8d6e5; --text-dim:#5a6a7a; --accent:#50fa7b; --cyan:#62d0ff; --gold:#f1c453; --red:#ff6b81;
+    --accent-dim:rgba(80,250,123,0.09); --cyan-dim:rgba(98,208,255,0.10); --gold-dim:rgba(241,196,83,0.12); --red-dim:rgba(255,107,129,0.12);
+    --code-bg:#060a10; --code-text:#c8d6e5;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f4f6f8; --surface:#fff; --surface2:#eaecf0; --surface-elevated:#f8f9fa;
+      --border:rgba(0,80,40,0.08); --border-bright:rgba(0,80,40,0.16);
+      --text:#1a2332; --text-dim:#5a6a7a; --accent:#0c7a3e; --cyan:#0a6ca8; --gold:#9a6f0d; --red:#c23a51;
+      --accent-dim:rgba(12,122,62,0.08); --cyan-dim:rgba(10,108,168,0.08); --gold-dim:rgba(154,111,13,0.10); --red-dim:rgba(194,58,81,0.09);
+      --code-bg:#1a2332; --code-text:#c8d6e5; }
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  .deck { height:100dvh; overflow-y:auto; scroll-snap-type:y mandatory; scroll-behavior:smooth; -webkit-overflow-scrolling:touch; }
+  body { font-family:var(--font-body); background:var(--bg); color:var(--text); }
+  .slide { height:100dvh; scroll-snap-align:start; overflow:hidden; position:relative; display:flex;
+    flex-direction:column; justify-content:center; padding:clamp(36px,5.5vh,74px) clamp(38px,7vw,110px);
+    isolation:isolate; opacity:0; transform:translateY(40px) scale(.98);
+    transition:opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1);
+    background-image:radial-gradient(circle, var(--border) 1px, transparent 1px); background-size:32px 32px; }
+  .slide.visible { opacity:1; transform:none; }
+  .slide:nth-child(odd){ background-image:radial-gradient(circle,var(--border) 1px,transparent 1px),radial-gradient(ellipse at 16% 84%, var(--accent-dim) 0%, transparent 52%); background-size:32px 32px,cover; }
+  .slide:nth-child(even){ background-image:radial-gradient(circle,var(--border) 1px,transparent 1px),radial-gradient(ellipse at 84% 16%, var(--cyan-dim) 0%, transparent 52%); background-size:32px 32px,cover; }
+  .reveal { opacity:0; transform:translateY(20px); transition:opacity .5s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1); }
+  .slide.visible .reveal { opacity:1; transform:none; }
+  .slide.visible .reveal:nth-child(1){transition-delay:.08s;} .slide.visible .reveal:nth-child(2){transition-delay:.16s;}
+  .slide.visible .reveal:nth-child(3){transition-delay:.24s;} .slide.visible .reveal:nth-child(4){transition-delay:.32s;}
+  .slide.visible .reveal:nth-child(5){transition-delay:.40s;} .slide.visible .reveal:nth-child(6){transition-delay:.48s;}
+
+  .display { font-size:clamp(38px,8.5vw,98px); font-weight:600; letter-spacing:-3px; line-height:.97; text-wrap:balance; }
+  .display .u { color:var(--accent); } .display .c { color:var(--cyan); }
+  .heading { font-size:clamp(25px,4.6vw,44px); font-weight:600; letter-spacing:-1px; line-height:1.1; text-wrap:balance; }
+  .subtitle { font-size:clamp(14px,1.7vw,20px); color:var(--text-dim); letter-spacing:.5px; margin-top:14px; }
+  .label { font-size:clamp(10px,1.2vw,13px); font-weight:600; text-transform:uppercase; letter-spacing:2px; color:var(--accent); }
+  .label.c { color:var(--cyan); } .label.g { color:var(--gold); }
+  .body { font-size:clamp(15px,1.9vw,21px); line-height:1.6; text-wrap:pretty; color:var(--text-dim); }
+  .body strong { color:var(--text); font-weight:600; }
+  code { font-size:.9em; background:var(--accent-dim); color:var(--accent); padding:1px 6px; border-radius:4px; }
+
+  .num { font-size:clamp(100px,22vw,240px); font-weight:300; line-height:.85; opacity:.09; position:absolute;
+    top:50%; left:50%; transform:translate(-50%,-55%); pointer-events:none; }
+
+  .bullets { list-style:none; padding:0; margin-top:22px; }
+  .bullets li { padding:9px 0 9px 26px; position:relative; font-size:clamp(15px,1.85vw,21px); line-height:1.55; color:var(--text-dim); }
+  .bullets li::before { content:''; position:absolute; left:0; top:18px; width:7px; height:7px; border-radius:50%; background:var(--accent); }
+  .bullets li strong { color:var(--text); font-weight:600; }
+
+  .split { padding:0; }
+  .panels { display:grid; grid-template-columns:3fr 2fr; height:100%; }
+  .panel { padding:clamp(38px,5.5vh,74px) clamp(30px,3.6vw,56px); display:flex; flex-direction:column; justify-content:center; min-width:0; overflow-wrap:break-word; }
+  .panel--p { background:var(--surface); } .panel--s { background:var(--surface2); }
+  .panel--s.warn { background:var(--red-dim); } .panel--s.good { background:var(--accent-dim); }
+
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:15px; margin-top:22px; }
+  .card-grid > * { min-width:0; }
+  .card { background:var(--surface); border:1px solid var(--border-bright); border-radius:10px; padding:17px 19px; position:relative; }
+  .card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:10px 0 0 10px; background:var(--accent); }
+  .card.c::before{background:var(--cyan);} .card.g::before{background:var(--gold);} .card.r::before{background:var(--red);}
+  .card .cid { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.5px; }
+  .card.c .cid{color:var(--cyan);} .card.g .cid{color:var(--gold);} .card.r .cid{color:var(--red);}
+  .card h3 { font-size:15px; font-weight:600; margin:5px 0 6px; letter-spacing:-.2px; color:var(--text); }
+  .card p { font-size:12.5px; color:var(--text-dim); line-height:1.5; }
+  .card p code { font-size:.92em; }
+  .sev { font-size:10px; text-transform:uppercase; letter-spacing:1px; padding:2px 8px; border-radius:5px; display:inline-block; margin-top:9px; }
+  .sev.crit{background:var(--red-dim);color:var(--red);} .sev.high{background:var(--gold-dim);color:var(--gold);}
+  .sev.med{background:var(--accent-dim);color:var(--accent);} .sev.low{background:var(--cyan-dim);color:var(--cyan);}
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:clamp(12px,2vw,22px); margin-top:26px; }
+  .kpi { background:var(--surface); border:1px solid var(--border-bright); border-radius:12px; padding:clamp(15px,2.8vh,28px) clamp(15px,2vw,22px); min-width:0; overflow:hidden; }
+  .kpi .v { font-size:clamp(32px,5.6vw,58px); font-weight:600; letter-spacing:-1.5px; line-height:1.1; white-space:nowrap; color:var(--accent); }
+  .kpi.c .v{color:var(--cyan);} .kpi.g .v{color:var(--gold);}
+  .kpi .l { font-size:clamp(9px,1.2vw,12px); font-weight:600; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim); margin-top:8px; }
+
+  .code-block { background:var(--code-bg); border:1px solid var(--border-bright); border-radius:12px;
+    padding:clamp(20px,3.6vh,40px) clamp(20px,3.6vw,40px); max-width:960px; width:100%; position:relative; margin-top:8px; }
+  .code-fn { position:absolute; top:-12px; left:22px; font-size:11px; font-weight:600; padding:4px 12px; border-radius:4px; background:var(--accent); color:var(--bg); }
+  .code-block pre { margin:0; overflow-x:auto; }
+  .code-block code { background:none; color:var(--code-text); padding:0; font-size:clamp(12px,1.4vw,16px); line-height:1.7; display:block; }
+  .code-block .cm{color:var(--text-dim);} .code-block .k{color:var(--cyan);} .code-block .s{color:var(--gold);} .code-block .g{color:var(--accent);} .code-block .o{color:var(--red);}
+
+  .pipeline { display:flex; align-items:stretch; gap:0; flex:1; min-height:0; margin-top:clamp(14px,2.6vh,28px); }
+  .pipeline > * { min-width:0; }
+  .pstep { flex:1; background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:10px;
+    padding:clamp(13px,2.2vh,24px) clamp(11px,1.4vw,18px); display:flex; flex-direction:column; overflow-wrap:break-word; }
+  .pstep:nth-child(3){border-top-color:var(--cyan);} .pstep:nth-child(5){border-top-color:var(--gold);} .pstep:nth-child(7){border-top-color:var(--cyan);} .pstep:nth-child(9){border-top-color:var(--gold);}
+  .pnum { font-size:clamp(10px,1.1vw,13px); font-weight:600; color:var(--accent); letter-spacing:.5px; }
+  .pname { font-size:clamp(14px,1.8vw,22px); font-weight:600; margin:clamp(3px,.7vh,7px) 0; color:var(--text); }
+  .pdesc { font-size:clamp(11px,1.2vw,14px); color:var(--text-dim); line-height:1.45; flex:1; }
+  .pfile { font-size:clamp(9px,1vw,11px); color:var(--accent); background:var(--accent-dim); padding:3px 7px; border-radius:4px; margin-top:clamp(7px,1.3vh,13px); align-self:flex-start; }
+  .parrow { display:flex; align-items:center; padding:0 clamp(2px,.35vw,5px); color:var(--accent); flex-shrink:0; opacity:.4; }
+
+  .tbl-wrap { border:1px solid var(--border-bright); border-radius:12px; overflow:hidden; margin-top:18px; }
+  .tbl-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:clamp(12px,1.5vw,17px); }
+  th { background:var(--surface2); font-size:clamp(10px,1.2vw,13px); font-weight:600; text-transform:uppercase; letter-spacing:1px;
+    color:var(--text-dim); text-align:left; padding:clamp(8px,1.4vh,13px) clamp(11px,1.8vw,18px); border-bottom:2px solid var(--border-bright); white-space:nowrap; }
+  td { padding:clamp(8px,1.3vh,13px) clamp(11px,1.8vw,18px); border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
+  tr:last-child td{border-bottom:none;} tbody tr:nth-child(even){background:var(--accent-dim);}
+  td code { font-size:.82em; }
+
+  .decor { position:absolute; pointer-events:none; z-index:0; top:0; right:0; opacity:.2; }
+
+  .deck-progress { position:fixed; top:0; left:0; height:3px; background:var(--accent); z-index:100; transition:width .3s ease; pointer-events:none; }
+  .deck-dots { position:fixed; right:clamp(10px,1.6vw,22px); top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:7px; z-index:100;
+    background:color-mix(in srgb, var(--bg) 70%, transparent); padding:6px; border-radius:20px; backdrop-filter:blur(4px); }
+  .deck-dot { width:8px; height:8px; border-radius:50%; background:var(--text-dim); opacity:.3; border:none; padding:0; cursor:pointer; transition:opacity .2s, transform .2s; }
+  .deck-dot:hover{opacity:.6;} .deck-dot.active{opacity:1; transform:scale(1.5); background:var(--accent);}
+  .deck-counter { position:fixed; bottom:clamp(12px,2vh,24px); right:clamp(12px,2vw,24px); font-size:12px; color:var(--text-dim); z-index:100; font-variant-numeric:tabular-nums; text-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .deck-hints { position:fixed; bottom:clamp(12px,2vh,24px); left:50%; transform:translateX(-50%); font-size:11px; color:var(--text-dim); opacity:.6; z-index:100; transition:opacity .5s; white-space:nowrap; text-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .deck-hints.faded{opacity:0; pointer-events:none;}
+
+  @media (max-width:820px){ .panels{grid-template-columns:1fr;} .pipeline{flex-direction:column;} .parrow{transform:rotate(90deg); padding:4px 0;} .kpis{grid-template-columns:repeat(2,1fr);} }
+  @media (max-height:600px){ .decor{display:none;} }
+  @media (prefers-reduced-motion:reduce){ .slide,.reveal{opacity:1!important; transform:none!important; transition:none!important;} }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide" style="justify-content:center; align-items:center; text-align:center;">
+    <svg class="decor" width="140" height="140" viewBox="0 0 140 140"><line x1="140" y1="0" x2="140" y2="50" stroke="var(--accent)" stroke-width="2"/><line x1="90" y1="0" x2="140" y2="0" stroke="var(--accent)" stroke-width="2"/></svg>
+    <div class="reveal"><div class="label">headspin-control · claude code plugin · v1.2.0</div></div>
+    <h1 class="display reveal" style="margin-top:18px;">Drive real devices.<br><span class="u">Find real bugs.</span></h1>
+    <p class="subtitle reveal">A HeadSpin device farm, driven from your terminal — lock a phone, record a session, crawl an app for defects, pull performance reports. Live-validated on 34 real devices. No mocks.</p>
+  </section>
+
+  <!-- 2 · WHAT IT IS / CAPABILITY MAP -->
+  <section class="slide">
+    <div class="reveal"><div class="label">what it does</div></div>
+    <h2 class="heading reveal" style="margin-top:8px;">Six things, one plugin</h2>
+    <div class="card-grid reveal">
+      <div class="card"><div class="cid">DEVICES</div><h3>Live device inventory</h3><p>List every phone, tablet, TV in the farm — status, model, OS. 34 Android/iOS/Roku online.</p></div>
+      <div class="card c"><div class="cid">CONTROL</div><h3>Reserve &amp; drive</h3><p>Lock a device, open an Appium session, tap / swipe / type / launch apps in real time.</p></div>
+      <div class="card g"><div class="cid">CAPTURE</div><h3>Record sessions</h3><p>Full lifecycle: lock → record → drive → stop → download the MP4, HAR, logs.</p></div>
+      <div class="card"><div class="cid">EXPLORE</div><h3>Find app defects</h3><p>Crawl the app and surface real UI / accessibility bugs from its live a11y tree.</p></div>
+      <div class="card c"><div class="cid">WATERFALL</div><h3>Performance reports</h3><p>Pull HeadSpin's issue cards — page-load, frame rate, audio — plus network waterfalls.</p></div>
+      <div class="card g"><div class="cid">REPORT</div><h3>File bugs</h3><p>Turn exploration findings into standardized, redacted bug reports with full evidence.</p></div>
+    </div>
+  </section>
+
+  <!-- 3 · DIVIDER: DEVICES -->
+  <section class="slide" style="justify-content:center;">
+    <span class="num">01</span>
+    <div class="reveal"><div class="label">devices</div></div>
+    <h2 class="heading reveal" style="margin-top:12px;">See the whole farm.</h2>
+    <p class="subtitle reveal">One command, every device, real-time status.</p>
+  </section>
+
+  <!-- 4 · DEVICES: command + output -->
+  <section class="slide" style="align-items:center;">
+    <div class="reveal" style="width:100%; max-width:960px;"><div class="label c">/headspin:devices</div></div>
+    <div class="code-block reveal">
+      <span class="code-fn">terminal</span>
+      <pre><code><span class="g">/headspin:devices</span> --platform android
+<span class="cm"># → hs_list_devices  (GET /v0/devices, Bearer auth)</span>
+
+  SAMSUNG SM-G991U   android 14   <span class="g">status 3 · ready</span>
+  GOOGLE  Pixel 6     android 12   <span class="g">status 3 · ready</span>
+  SAMSUNG SM-G973W   android 12   <span class="g">status 3 · ready</span>
+  ROKU    Streaming Stick+  15.2.4 <span class="g">status 3 · ready</span>
+  …
+  <span class="cm">34 devices online · 20 android · iOS · Roku</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 5 · DIVIDER: CONTROL -->
+  <section class="slide" style="justify-content:center;">
+    <span class="num">02</span>
+    <div class="reveal"><div class="label">control</div></div>
+    <h2 class="heading reveal" style="margin-top:12px;">Reserve it. Drive it.</h2>
+    <p class="subtitle reveal">Lock a device, open a session, send real input.</p>
+  </section>
+
+  <!-- 6 · CONTROL: split — connect + drive -->
+  <section class="slide split">
+    <div class="panels">
+      <div class="panel panel--p reveal">
+        <div class="label c">connect</div>
+        <h2 class="heading" style="margin:12px 0; font-size:clamp(22px,3.4vw,32px);">Open a session</h2>
+        <p class="body" style="font-size:clamp(14px,1.6vw,18px);"><code>/headspin:connect android</code> locks the device and opens a real Appium <code>wd/hub</code> session against the target app — routed automatically for Android, iOS, or Roku.</p>
+      </div>
+      <div class="panel panel--s good reveal">
+        <div class="label">drive</div>
+        <h2 class="heading" style="margin:12px 0; font-size:clamp(22px,3.4vw,32px);">Send input</h2>
+        <p class="body" style="font-size:clamp(14px,1.6vw,18px);"><code>/headspin:control</code> — screenshot, tap, swipe, keypress, launch. Backed by <code>hs_adb_shell</code>: <code>input tap</code>, <code>input swipe</code>, <code>am start</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · DIVIDER: CAPTURE -->
+  <section class="slide" style="justify-content:center;">
+    <span class="num">03</span>
+    <div class="reveal"><div class="label">capture</div></div>
+    <h2 class="heading reveal" style="margin-top:12px;">Record a full session.</h2>
+    <p class="subtitle reveal">Lock → record → drive → stop → download — six real REST calls.</p>
+  </section>
+
+  <!-- 8 · CAPTURE: lifecycle pipeline -->
+  <section class="slide">
+    <div class="reveal"><div class="label g">the capture lifecycle</div></div>
+    <h2 class="heading reveal" style="margin-top:6px;">/headspin:capture</h2>
+    <div class="pipeline reveal">
+      <div class="pstep"><div class="pnum">01</div><div class="pname">Lock</div><div class="pdesc">Reserve the device so nothing else drives it.</div><div class="pfile">hs_adb_lock</div></div>
+      <div class="parrow"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pstep"><div class="pnum">02</div><div class="pname">Record</div><div class="pdesc">Start a capture session — screen video begins.</div><div class="pfile">hs_start_capture</div></div>
+      <div class="parrow"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pstep"><div class="pnum">03</div><div class="pname">Drive</div><div class="pdesc">Tap / swipe / launch the app under test.</div><div class="pfile">hs_adb_shell</div></div>
+      <div class="parrow"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pstep"><div class="pnum">04</div><div class="pname">Stop</div><div class="pdesc">End the session; HeadSpin finalizes the MP4.</div><div class="pfile">hs_stop_capture</div></div>
+      <div class="parrow"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pstep"><div class="pnum">05</div><div class="pname">Download</div><div class="pdesc">Pull the MP4, HAR, pcap, device logs.</div><div class="pfile">hs_session_download</div></div>
+    </div>
+  </section>
+
+  <!-- 9 · DIVIDER: WATERFALL -->
+  <section class="slide" style="justify-content:center;">
+    <span class="num">04</span>
+    <div class="reveal"><div class="label">waterfall</div></div>
+    <h2 class="heading reveal" style="margin-top:12px;">What did the platform see?</h2>
+    <p class="subtitle reveal">HeadSpin's own performance analysis, surfaced as issue cards.</p>
+  </section>
+
+  <!-- 10 · WATERFALL: issue cards + metrics -->
+  <section class="slide">
+    <div class="reveal"><div class="label c">/headspin:waterfall · /headspin:sessions</div></div>
+    <h2 class="heading reveal" style="margin-top:6px;">Performance &amp; network reports</h2>
+    <div class="card-grid reveal">
+      <div class="card c"><div class="cid">hs_session_issues</div><h3>Issue cards</h3><p>Page-load, low frame rate, audio-too-quiet, and more — HeadSpin's Waterfall verdicts on the session.</p></div>
+      <div class="card"><div class="cid">hs_session_timeseries</div><h3>Time series</h3><p>Frame rate, CPU, memory, network throughput over the session timeline — download as CSV.</p></div>
+      <div class="card g"><div class="cid">hs_session_download</div><h3>Network waterfall</h3><p>Full HAR of every request, plus pcap and TLS exceptions for gap analysis.</p></div>
+      <div class="card"><div class="cid">hs_session_video_metadata</div><h3>Video + timestamps</h3><p>MP4 metadata, capture start/stop marks, analysis-ready status polling.</p></div>
+    </div>
+  </section>
+
+  <!-- 11 · DIVIDER: EXPLORE / BUG-FINDING -->
+  <section class="slide" style="justify-content:center;">
+    <span class="num">05</span>
+    <div class="reveal"><div class="label">explore</div></div>
+    <h2 class="heading reveal" style="margin-top:12px;">Find bugs <span class="u">in the app itself.</span></h2>
+    <p class="subtitle reveal">Crawl the app, read its accessibility tree, flag real UI defects.</p>
+  </section>
+
+  <!-- 12 · EXPLORE: how it works -->
+  <section class="slide">
+    <div class="reveal"><div class="label">/headspin:explore</div></div>
+    <h2 class="heading reveal" style="margin-top:8px;">Crawl → inspect → flag</h2>
+    <ul class="bullets reveal">
+      <li><strong>Bounded BFS crawl</strong> — opens each screen of the app under test, one at a time.</li>
+      <li><strong>Reads the live a11y tree</strong> — Appium <code>page_source</code> + a screenshot at every screen.</li>
+      <li><strong>Runs defect predicates</strong> — package-scoped, subtree-aware, over the real tree.</li>
+      <li><strong>Bundles evidence</strong> — the offending node, its bounds, the source XML, the screenshot.</li>
+    </ul>
+  </section>
+
+  <!-- 13 · EXPLORE: the 4 predicates -->
+  <section class="slide">
+    <div class="reveal"><div class="label c">defect predicates · a11y_defects.py</div></div>
+    <h2 class="heading reveal" style="margin-top:6px;">Four ways the app fails its users</h2>
+    <div class="card-grid reveal">
+      <div class="card r"><div class="cid">A1</div><h3>Crash / ANR dialog</h3><p>A system "isn't responding" / "has stopped" dialog on top of the target app.</p><span class="sev crit">critical</span></div>
+      <div class="card"><div class="cid">A3</div><h3>Unlabeled clickable</h3><p>A control whose entire subtree has no text or content-desc — TalkBack can't announce it.</p><span class="sev med">medium</span></div>
+      <div class="card g"><div class="cid">A4</div><h3>Unlabeled image control</h3><p>A clickable <code>ImageButton</code> leaf with empty content-desc and no labelled child.</p><span class="sev high">high</span></div>
+      <div class="card c"><div class="cid">A5</div><h3>Undersized touch target</h3><p>An on-screen control below 48&nbsp;dp — the Material / WCAG&nbsp;2.5.8 minimum.</p><span class="sev low">low</span></div>
+    </div>
+  </section>
+
+  <!-- 14 · PROVEN: dashboard -->
+  <section class="slide">
+    <div class="reveal"><div class="label">proven live · Pixel 6 · com.android.settings</div></div>
+    <h2 class="heading reveal" style="margin-top:6px;">What one crawl found</h2>
+    <div class="kpis reveal">
+      <div class="kpi"><div class="v">1</div><div class="l">genuine defect</div></div>
+      <div class="kpi c"><div class="v">24.5dp</div><div class="l">vs 48dp minimum</div></div>
+      <div class="kpi g"><div class="v">2</div><div class="l">false positives caught</div></div>
+      <div class="kpi"><div class="v">10</div><div class="l">screens crawled</div></div>
+    </div>
+    <p class="body reveal" style="margin-top:24px; max-width:820px;">On the Security screen, the <strong>Dismiss (✕) button</strong> on the "Update this device" banner is <strong>63×63&nbsp;px ≈ 24.5&nbsp;dp</strong> — half the Material minimum. Package-scoped, source-cited, screenshot-corroborated.</p>
+  </section>
+
+  <!-- 15 · DIVIDER: REPORT -->
+  <section class="slide" style="justify-content:center;">
+    <span class="num">06</span>
+    <div class="reveal"><div class="label">report</div></div>
+    <h2 class="heading reveal" style="margin-top:12px;">Turn findings into filed bugs.</h2>
+    <p class="subtitle reveal">Standardized reports, full evidence, tokens redacted.</p>
+  </section>
+
+  <!-- 16 · REPORT: the bug report -->
+  <section class="slide" style="align-items:center;">
+    <div class="reveal" style="width:100%; max-width:960px;"><div class="label g">/headspin:report</div></div>
+    <div class="code-block reveal">
+      <span class="code-fn">BUG-1.json</span>
+      <pre><code>{
+  <span class="k">"session_id"</span>: <span class="s">"59d2da99-…"</span>,
+  <span class="k">"target_app"</span>: { <span class="k">"package"</span>: <span class="s">"com.android.settings"</span>,
+                  <span class="k">"screen"</span>: <span class="s">"Security"</span> },
+  <span class="k">"defect"</span>: {
+    <span class="k">"class"</span>: <span class="s">"A5_undersized_touch_target"</span>,
+    <span class="k">"element"</span>: <span class="s">"banner_dismiss_btn"</span>,
+    <span class="k">"bounds"</span>: <span class="s">"[922,1174][985,1237]"</span>,   <span class="cm"># 63×63px = 24.5dp</span>
+    <span class="k">"evidence"</span>: { <span class="k">"source"</span>: <span class="s">"vg3-s7.xml"</span>,
+                  <span class="k">"screenshot"</span>: <span class="s">"vg3-s7.png"</span> }
+  }
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- 17 · MCP TOOL INVENTORY -->
+  <section class="slide" style="padding:clamp(22px,4vh,44px) clamp(24px,5vw,80px);">
+    <div class="reveal"><div class="label c">under the hood</div></div>
+    <h2 class="heading reveal" style="margin-top:4px;">20 live MCP tools</h2>
+    <div class="tbl-wrap reveal"><div class="tbl-scroll">
+      <table>
+        <thead><tr><th>Area</th><th>Tools</th></tr></thead>
+        <tbody>
+          <tr><td>Devices</td><td><code>hs_list_devices</code> · <code>hs_idevice_info</code> · <code>hs_installer_list</code> · <code>hs_login_details</code></td></tr>
+          <tr><td>Lock / drive</td><td><code>hs_adb_lock</code> · <code>hs_adb_unlock</code> · <code>hs_adb_shell</code> · <code>hs_lock_device</code> · <code>hs_unlock_device</code></td></tr>
+          <tr><td>Capture</td><td><code>hs_start_capture</code> · <code>hs_stop_capture</code> · <code>hs_list_sessions</code></td></tr>
+          <tr><td>Analysis</td><td><code>hs_session_issues</code> · <code>hs_session_timeseries_info</code> · <code>hs_session_timeseries_download</code> · <code>hs_analysis_status</code></td></tr>
+          <tr><td>Artifacts</td><td><code>hs_session_download</code> · <code>hs_session_video_metadata</code> · <code>hs_session_timestamps</code> · <code>hs_session_tls_exceptions</code></td></tr>
+        </tbody>
+      </table>
+    </div></div>
+  </section>
+
+  <!-- 18 · COMMAND INVENTORY -->
+  <section class="slide" style="padding:clamp(22px,4vh,44px) clamp(24px,5vw,80px);">
+    <div class="reveal"><div class="label">the verbs you type</div></div>
+    <h2 class="heading reveal" style="margin-top:4px;">10 slash commands</h2>
+    <div class="tbl-wrap reveal"><div class="tbl-scroll">
+      <table>
+        <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>/headspin:setup</code></td><td>Verify config &amp; onboard the plugin</td></tr>
+          <tr><td><code>/headspin:login</code></td><td>Authenticate — mint an API token (env only)</td></tr>
+          <tr><td><code>/headspin:devices</code></td><td>List the live device roster</td></tr>
+          <tr><td><code>/headspin:connect</code></td><td>Lock a device &amp; open a control session</td></tr>
+          <tr><td><code>/headspin:control</code></td><td>Drive it — tap, swipe, type, screenshot</td></tr>
+          <tr><td><code>/headspin:capture</code></td><td>Full lock → record → drive → stop → download</td></tr>
+          <tr><td><code>/headspin:explore</code></td><td>Crawl the app for real UI / a11y defects</td></tr>
+          <tr><td><code>/headspin:report</code></td><td>File standardized bug reports</td></tr>
+          <tr><td><code>/headspin:sessions</code> · <code>:waterfall</code></td><td>Pull performance reports &amp; network waterfalls</td></tr>
+        </tbody>
+      </table>
+    </div></div>
+  </section>
+
+  <!-- 19 · GET STARTED -->
+  <section class="slide" style="align-items:center;">
+    <div class="reveal" style="width:100%; max-width:960px;"><div class="label">get started</div></div>
+    <div class="code-block reveal">
+      <span class="code-fn">terminal</span>
+      <pre><code><span class="cm"># 1 · onboard + authenticate (token stays in env, never on disk)</span>
+<span class="g">/headspin:setup</span>
+<span class="g">/headspin:login</span>
+
+<span class="cm"># 2 · pick a live device</span>
+<span class="g">/headspin:devices</span>
+
+<span class="cm"># 3 · crawl an app for real defects</span>
+<span class="g">/headspin:explore</span> com.android.settings
+
+<span class="cm"># 4 · file what it found</span>
+<span class="g">/headspin:report</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 20 · CLOSING -->
+  <section class="slide" style="justify-content:center; align-items:center; text-align:center;">
+    <div class="reveal"><div class="label">headspin-control · MIT · live-validated</div></div>
+    <h2 class="display reveal" style="margin-top:16px; font-size:clamp(32px,6.5vw,76px);">Real devices.<br><span class="u">Real bugs.</span> <span class="c">No mocks.</span></h2>
+    <p class="subtitle reveal">github.com/krzemienski/headspin-control</p>
+  </section>
+
+</div>
+
+<script>
+class SlideEngine {
+  constructor(){ this.deck=document.querySelector('.deck'); this.slides=[...document.querySelectorAll('.slide')];
+    this.current=0; this.total=this.slides.length; this.buildChrome(); this.bindEvents(); this.observe(); this.update(); }
+  buildChrome(){ var bar=document.createElement('div'); bar.className='deck-progress'; document.body.appendChild(bar); this.bar=bar;
+    var dots=document.createElement('div'); dots.className='deck-dots'; var self=this;
+    this.slides.forEach(function(_,i){ var d=document.createElement('button'); d.className='deck-dot'; d.onclick=function(){self.goTo(i);}; dots.appendChild(d); });
+    document.body.appendChild(dots); this.dots=[].slice.call(dots.children);
+    var ctr=document.createElement('div'); ctr.className='deck-counter'; document.body.appendChild(ctr); this.counter=ctr;
+    var h=document.createElement('div'); h.className='deck-hints'; h.textContent='← → or scroll to navigate'; document.body.appendChild(h); this.hints=h;
+    this.hintTimer=setTimeout(function(){h.classList.add('faded');},4000); }
+  bindEvents(){ var self=this;
+    document.addEventListener('keydown',function(e){
+      if(e.target.closest('input,textarea,[contenteditable]'))return;
+      if(['ArrowDown','ArrowRight',' ','PageDown'].includes(e.key)){e.preventDefault();self.next();}
+      else if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();self.prev();}
+      else if(e.key==='Home'){e.preventDefault();self.goTo(0);}
+      else if(e.key==='End'){e.preventDefault();self.goTo(self.total-1);}
+      self.fadeHints(); });
+    var ty; this.deck.addEventListener('touchstart',function(e){ty=e.touches[0].clientY;},{passive:true});
+    this.deck.addEventListener('touchend',function(e){var dy=ty-e.changedTouches[0].clientY; if(Math.abs(dy)>50){dy>0?self.next():self.prev();}}); }
+  observe(){ var self=this; var obs=new IntersectionObserver(function(en){ en.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('visible'); self.current=self.slides.indexOf(e.target); self.update(); } }); },{threshold:.5});
+    this.slides.forEach(function(s){obs.observe(s);}); }
+  goTo(i){ this.slides[Math.max(0,Math.min(i,this.total-1))].scrollIntoView({behavior:'smooth'}); }
+  next(){ if(this.current<this.total-1)this.goTo(this.current+1); }
+  prev(){ if(this.current>0)this.goTo(this.current-1); }
+  update(){ this.bar.style.width=((this.current+1)/this.total*100)+'%'; var self=this;
+    this.dots.forEach(function(d,i){d.classList.toggle('active',i===self.current);}); this.counter.textContent=(this.current+1)+' / '+this.total; }
+  fadeHints(){ clearTimeout(this.hintTimer); this.hints.classList.add('faded'); }
+}
+document.addEventListener('DOMContentLoaded',function(){ new SlideEngine(); });
+</script>
+</body>
+</html>

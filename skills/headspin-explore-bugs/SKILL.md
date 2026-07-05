@@ -64,19 +64,41 @@ start capture session (POST /v0/sessions {session_type:"capture", device_address
 stop capture session (PATCH /v0/sessions/{id} {active:false}) → video at /v0/sessions/{id}.mp4
 ```
 
-## Anomaly detection (four signals)
+## Anomaly detection (five signals)
 
 | Signal | How detected | Meaning |
 |--------|--------------|---------|
 | **Crash / session death** | control command raises / session invalid | app or session died |
-| **Error text on screen** | error keywords in page source OR `GET /v0/video/{device_id}/ocr` | error dialog / exception surfaced |
+| **Error text on screen** | error keywords in page source OR `POST /v0/video/{device_id}/ocr` | error dialog / exception surfaced |
+| **App-UI / a11y defect** | `a11y_defects.py` predicates over the live `page_source` (see below) | real accessibility / usability bug in the app under test |
 | **Stuck screen** | N consecutive identical page-source hashes after an action | frozen / dead-end UI |
 | **App not foreground** | current package/bundle ≠ app under test | app was backgrounded / kicked out |
+
+### App-UI / accessibility defect analyzer (`scripts/a11y_defects.py`)
+
+`_detect` runs a **package-scoped, subtree-aware** analyzer over the live Appium
+`page_source` (the uiautomator2 accessibility tree) at every screen. It surfaces
+defects **in the application under test**, not the harness:
+
+| Predicate | Defect | Severity |
+|-----------|--------|----------|
+| **A1** | Crash / ANR dialog on top of the app (`isn't responding` / `has stopped`) | critical |
+| **A3** | Unlabeled clickable control — no text, no `content-desc` anywhere in its subtree | medium |
+| **A4** | Unlabeled clickable `ImageView`/`ImageButton` leaf (icon-only, no a11y name) | high |
+| **A5** | Undersized touch target — an on-screen control below 48 dp (Material / WCAG 2.5.8) | low |
+
+**False-positive guards:** every predicate skips nodes whose `package` ≠ the target
+app (OS chrome is never flagged); A3 is subtree-aware (a labelled child clears the
+parent); A3 and A5 require a real control (a `resource-id`, a `content-desc`, or a
+widget class) so anonymous layout slivers are ignored; A5 requires the node fully
+on-screen with non-zero area. Proven live on `com.android.settings` (Pixel 6): found a
+genuine 24.5 dp Dismiss button on the Security banner, with 2 edge-sliver false
+positives correctly suppressed.
 
 Error keywords (case-insensitive): `error`, `exception`, `crash`, `not responding`,
 `something went wrong`, `unfortunately`, `force close`, `anr`, `fatal`.
 
-The OCR endpoint (`GET /v0/video/{device_id}/ocr`) reads the LIVE screen text
+The OCR endpoint (`POST /v0/video/{device_id}/ocr`) reads the LIVE screen text
 left-to-right, top-to-bottom — useful when error text is rendered as an image or
 a native alert that never appears in the control page source.
 
@@ -87,7 +109,7 @@ Written to `./headspin-exploration/{run-id}/anomaly-{n}/`:
 ```
 screenshot.png    # control screenshot at the moment of the anomaly
 page_source.xml   # UI hierarchy dump
-ocr.txt           # GET /v0/video/{device_id}/ocr  (live-screen text)
+ocr.txt           # POST /v0/video/{device_id}/ocr  (live-screen text)
 log_tail.txt      # syslog (iOS) / logcat (Android) tail
 action_log.json   # verbatim ordered steps that led here (repro trail)
 meta.json         # timestamp, device_address, device_id, session_id, signal, screen_hash
@@ -128,7 +150,7 @@ this usage and exits — it has no standalone auto-connect harness.
 ## Evidence
 
 - OCR endpoint (live-screen text): `plans/260702-headspin-skills/SYNTHESIS.md` §8
-  (`GET /v0/video/{device_id}/ocr`) + `headspin-docs/api-reference/`.
+  (`POST /v0/video/{device_id}/ocr`) + `headspin-docs/api-reference/`.
 - Capture-session lifecycle (lock → POST /v0/sessions → timestamps → PATCH
   active:false → `.mp4`): `plans/260702-headspin-skills/SYNTHESIS.md` §9.
 - Websocket control surface the crawl drives:

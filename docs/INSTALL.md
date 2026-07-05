@@ -11,12 +11,15 @@ sample output below is **real** — captured from the 2026-07-02 validation run 
 | Requirement | Why | Check |
 |---|---|---|
 | Claude Code ≥ 2.1 | plugin host | `claude --version` → `2.1.198 (Claude Code)` |
-| Python 3.8+ | MCP server + probes (stdlib only, no pip installs) | `python3 --version` |
+| Python 3.8+ | MCP server + probes (stdlib only) | `python3 --version` |
+| `Appium-Python-Client` | required for app exploration (`/headspin:explore`) | `pip install Appium-Python-Client` |
 | A HeadSpin account + API token | every live call is real | see **Getting your API token** below |
 
-The MCP server and the WebSocket probes are **stdlib-only** — there is nothing to
-`pip install`. If you want to drive the plugin programmatically you can optionally add
-the Agents SDK (`pip install claude-agent-sdk`), but it is not required for normal use.
+The **20 MCP tools and the WebSocket probes are stdlib-only** — there is nothing to
+`pip install` to use them. The **app-exploration path** (`/headspin:explore`, which drives
+a real Appium `wd/hub` session and analyzes the app's accessibility tree) requires the
+Appium client: `pip install Appium-Python-Client`. If you want to drive the plugin
+programmatically you can also add the Agents SDK (`pip install claude-agent-sdk`).
 
 ---
 
@@ -45,7 +48,7 @@ Real output from this environment:
 
 ```
   ❯ headspin-control@headspin-dev
-    Version: 0.2.0
+    Version: 1.2.0
     Scope: user
 ```
 

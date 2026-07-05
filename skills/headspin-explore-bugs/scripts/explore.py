@@ -78,10 +78,12 @@ def _hash(text: str) -> str:
 
 class AppExplorer:
     def __init__(self, driver, device_address: str, device_id: str,
-                 out_dir: str = "./headspin-exploration", base: str | None = None) -> None:
+                 out_dir: str = "./headspin-exploration", base: str | None = None,
+                 app_package: str | None = None) -> None:
         self.driver = driver
         self.device_address = device_address
         self.device_id = device_id
+        self.app_package = app_package  # app under test; None disables foreground check
         self.base = base or _default_base()
         self.rest = _Rest(self.base)
         self.run_id = time.strftime("%Y%m%d-%H%M%S")
@@ -126,12 +128,44 @@ class AppExplorer:
         low = (page_source or "").lower()
         if any(k in low for k in ERROR_KEYWORDS):
             return "error_text_page_source"
+        if self.app_package:
+            try:
+                cur_pkg = getattr(self.driver, "current_package", None)
+                if cur_pkg and cur_pkg != self.app_package:
+                    return "app_not_foreground"
+            except Exception:  # noqa: BLE001 — package query failed; not itself an anomaly
+                pass
         ocr = self._ocr().lower()
         if any(k in ocr for k in ERROR_KEYWORDS):
             return "error_text_ocr"
+        # App-UI/accessibility defect analysis on the live a11y tree. This is the
+        # bug-in-the-app-under-test path: package-scoped, subtree-aware predicates
+        # over driver.page_source (see a11y_defects.py). Reported as an anomaly so
+        # _capture_bundle saves the offending screen for the bug report.
+        a11y = self._a11y_defects(page_source)
+        if a11y:
+            self.a11y_findings = a11y  # surfaced into the evidence bundle
+            return "a11y_defect:" + a11y[0]["predicate"]
         if prev_hash is not None and prev_hash == cur_hash:
             return "stuck_screen"
         return None
+
+    def _a11y_defects(self, page_source: str) -> list:
+        """Run the package-scoped a11y defect predicates on the current a11y tree."""
+        try:
+            import a11y_defects
+        except ImportError:
+            import os as _os
+            import sys as _sys
+            _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+            import a11y_defects
+        if not (self.app_package and page_source):
+            return []
+        density = getattr(self, "density", 2.5688)
+        wr = getattr(self, "window_rect", None) or {}
+        return a11y_defects.detect(
+            page_source, self.app_package, density,
+            wr.get("width", 1080), wr.get("height", 2240))
 
     def _capture_bundle(self, signal: str, page_source: str) -> str:
         self._anomaly_n += 1
@@ -179,15 +213,16 @@ class AppExplorer:
                     self._capture_bundle("crash_driver_death", "")
                     break
                 cur_hash = _hash(page_source)
-                if cur_hash in self.visited:
-                    continue
-                self.visited.add(cur_hash)
-
+                # Anomaly check BEFORE visited-dedup: a frozen screen re-hashes
+                # identically, so the stuck_screen compare must see it first.
                 signal = self._detect(page_source, prev_hash, cur_hash)
                 if signal:
                     self._capture_bundle(signal, page_source)
                     prev_hash = cur_hash
                     continue
+                if cur_hash in self.visited:
+                    continue
+                self.visited.add(cur_hash)
 
                 # Inventory + act via the live driver (Appium clients only).
                 try:

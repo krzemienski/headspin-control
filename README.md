@@ -2,8 +2,11 @@
 
 A Claude Code plugin for driving real devices on a [HeadSpin](https://www.headspin.io/)
 device farm: authenticate to an environment, enumerate and lock devices, connect and
-control iOS / Android, run automated exploration, and file standardized bug reports —
-through HeadSpin REST, Appium, socket.io, and Janus surfaces.
+control iOS / Android, capture full sessions, pull performance reports — and **crawl an
+app to find real accessibility / UI defects in the application under test**. It drives a
+live Appium `wd/hub` session, reads the app's accessibility tree, and flags genuine bugs
+(unlabeled controls, undersized touch targets, crashes) with source + screenshot
+evidence — through HeadSpin REST, Appium, socket.io, and Janus surfaces.
 
 Every skill and the bundled MCP server call the **real** HeadSpin API. There are no
 mocked responses. The plugin was validated against `ui-dev.headspin.io` /
@@ -241,7 +244,7 @@ The WebRTC screen view (and the iOS video leg gated by `CONTROL_WEBRTC_START`) r
 | `/headspin:connect` | Lock a device and open the right control path (iOS / Android / Roku). |
 | `/headspin:control` | Drive a connected device (taps, keys, screenshots, OCR). |
 | `/headspin:capture` | **(1.2.0)** Full capture lifecycle: lock → record → drive app → stop → report-ready. |
-| `/headspin:explore` | Run automated exploration to surface anomalies and crashes. |
+| `/headspin:explore` | Crawl the app under test to surface real UI / accessibility defects (unlabeled controls, undersized touch targets, crashes) plus anomalies, via a live Appium a11y-tree analyzer. |
 | `/headspin:report` | Produce a standardized bug report from exploration evidence. |
 | `/headspin:sessions` | List capture sessions; pull the report (issue card, status, time series). |
 | `/headspin:waterfall` | Download the Waterfall HAR / MP4 / device log / PCAP for a session. |

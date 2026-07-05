@@ -61,14 +61,26 @@
 <div class="wrap">
   <div class="prompt">~/headspin $ ls docs<span class="cursor">_</span></div>
   <h1>HeadSpin Control<span class="dot">.</span></h1>
-  <p class="sub">A Claude Code plugin for driving real devices on a HeadSpin farm — HAR-verified auth, device inventory, full capture sessions (lock → record → drive → report), Waterfall issue-card reports, MP4/HAR artifact download, and bug reporting. Live-validated on real devices, no mocks.</p>
+  <p class="sub">A Claude Code plugin for driving real devices on a HeadSpin farm — and <b style="color:var(--accent)">finding real accessibility &amp; UI defects in the app under test</b>. HAR-verified auth, device inventory, full capture sessions (lock → record → drive → report), an Appium-driven a11y defect analyzer, Waterfall issue-card reports, and MP4/HAR download. Live-validated on real devices, no mocks.</p>
   <div class="meta">
     <span class="chip"><b>v1.2.0</b></span>
     <span class="chip g"><b>MIT</b></span>
-    <span class="chip">20/20 MCP tools live · full capture lifecycle · 34 devices</span>
+    <span class="chip">20/20 MCP tools live · app-defect detection · 34 devices</span>
   </div>
 
   <div class="cards">
+    <a class="card" href="./bug-finding-deck.html">
+      <div class="k">// new — capabilities</div>
+      <h2>Capabilities Deck</h2>
+      <p>20-slide walkthrough of the whole plugin: devices, control, capture, explore/a11y-defects, waterfall, report — real commands, real output, the full 20-tool + 10-command inventory.</p>
+      <div class="go">▸ open bug-finding-deck.html</div>
+    </a>
+    <a class="card c" href="./bug-finding-dataflow.html">
+      <div class="k">// new — data flow</div>
+      <h2>Bug-Finding Data Flow</h2>
+      <p>Interactive diagram: token → automation-config → Appium session → live device → page_source → a11y analyzer → bug report. The chain that finds real app defects.</p>
+      <div class="go">▸ open bug-finding-dataflow.html</div>
+    </a>
     <a class="card" href="./docs.html">
       <div class="k">// visual reference</div>
       <h2>Architecture &amp; Docs</h2>
