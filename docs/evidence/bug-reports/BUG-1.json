@@ -1,0 +1,71 @@
+{
+  "id": "BUG-1",
+  "title": "Capture recorder wired to wrong device — MP4 records a different device's screen",
+  "severity": "high",
+  "defect_class": "farm-infrastructure/recorder-rig-assignment",
+  "environment": {
+    "api_host": "api-dev.headspin.io",
+    "ui_host": "ui-dev.headspin.io",
+    "org": "YouTube Benchmarking",
+    "cluster": "dev-ca-tor-0"
+  },
+  "reproductions": [
+    {
+      "date": "2026-07-05",
+      "device_driven": {
+        "serial": "R38N70234FA",
+        "model": "SM-G973W",
+        "device_type": "android",
+        "os_version": "12",
+        "device_address": "R38N70234FA@dev-ca-tor-0-proxy-2-lin.headspin.io"
+      },
+      "session_id": "e8024cb0-788e-11f1-8491-da3445a29211",
+      "session_url": "https://ui-dev.headspin.io/sessions/e8024cb0-788e-11f1-8491-da3445a29211",
+      "video_url": "https://api-dev.headspin.io/v0/sessions/e8024cb0-788e-11f1-8491-da3445a29211.mp4",
+      "recorded_device_actual": {
+        "serial": "00008030-001174DE2260402E",
+        "model": "iPhone12,1",
+        "device_type": "ios",
+        "os_version": "14.4.2",
+        "attribution": "frame app-set matches installer/list inventory exactly (Tether, Tether2, masterhand x2, WebDriverAgentRunner, iDevice Test APP); on-screen clock matches device timezone"
+      },
+      "adb_targeting_correct": true,
+      "adb_proof": "POST /v0/adb/R38N70234FA/shell getprop ro.product.model -> SM-G973W",
+      "evidence": [
+        "https://github.com/krzemienski/headspin-control/blob/main/docs/evidence/VALIDATION-260705.md",
+        "https://github.com/krzemienski/headspin-control/blob/main/docs/evidence/session-e8024cb0-frame900.jpg"
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "device_driven": {
+        "serial": "R3CR40B0M9L",
+        "model": "SM-G991U",
+        "device_type": "android",
+        "os_version": "14",
+        "device_address": "R3CR40B0M9L@dev-ca-tor-0-proxy-1-lin.headspin.io"
+      },
+      "session_id": "54095810-76b2-11f1-9519-da3445a29211",
+      "sessions_affected": 3,
+      "video_url": "https://api-dev.headspin.io/v0/sessions/54095810-76b2-11f1-9519-da3445a29211.mp4",
+      "recorded_device_actual": {
+        "device_type": "roku",
+        "attribution": "MP4 frames show Roku City screensaver, TV aspect; phone fingerprint is ~752x1664 portrait"
+      },
+      "adb_targeting_correct": true
+    }
+  ],
+  "expected": "Capture MP4 shows the screen of the locked device named in device_address",
+  "actual": "MP4 shows a different physical device's screen; session ends state=ended, error_code=null with no warning",
+  "impact": [
+    "Recordings silently invalid on affected serials",
+    "Video-derived analyses (issue cards, video time series, MOS) computed against wrong screen",
+    "No platform-side detection; customer must frame-fingerprint every MP4"
+  ],
+  "suggested_triage": [
+    "Audit recorder-to-device rig assignments on dev-ca-tor-0 proxy-1 and proxy-2",
+    "Add capture-start sanity check comparing recorder frames to device display fingerprint"
+  ],
+  "reported_by": "headspin-control plugin validation (krzemienski@gmail.com)",
+  "created": "2026-07-05"
+}
