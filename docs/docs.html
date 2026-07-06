@@ -287,6 +287,28 @@
     .sec-head p { margin-left: 0; width: 100%; }
     .mermaid-wrap { padding: 16px 10px; min-height: 380px; }
   }
+
+  /* Validation timeline */
+  .hs-timeline { position: relative; margin-top: 22px; padding-left: 28px; }
+  .hs-timeline::before {
+    content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px;
+    width: 2px; background: linear-gradient(var(--accent), var(--green));
+    opacity: .5;
+  }
+  .tl-item { position: relative; padding: 0 0 26px 6px; }
+  .tl-item:last-child { padding-bottom: 4px; }
+  .tl-item::before {
+    content: ''; position: absolute; left: -25px; top: 4px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--accent);
+  }
+  .tl-item--now::before { border-color: var(--green); background: var(--green-dim); box-shadow: 0 0 0 4px var(--green-dim); }
+  .tl-date { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: 1px; }
+  .tl-item--now .tl-date { color: var(--green); }
+  .tl-ver { font-family: var(--font-mono); font-size: 12px; margin-left: 8px; padding: 1px 7px; border-radius: 4px;
+            background: var(--accent-dim); color: var(--accent); }
+  .tl-title { font-weight: 600; margin: 4px 0 3px; }
+  .tl-body { color: var(--muted, #93a4c4); font-size: 14.5px; line-height: 1.55; }
 </style>
 </head>
 <body data-hspage="docs">
@@ -673,10 +695,47 @@ flowchart TD
     </div>
   </section>
 
-  <!-- ===================== 06 THE GOTCHA ===================== -->
+  <!-- ===================== 07 VALIDATION TIMELINE ===================== -->
   <section class="animate" style="--i:0">
     <div class="sec-head">
       <span class="sec-num">07</span>
+      <h2>Validation Timeline</h2>
+      <p>every milestone live-validated against api-dev.headspin.io · real devices, no mocks</p>
+    </div>
+    <div class="hs-timeline">
+      <div class="tl-item">
+        <span class="tl-date">2026-07-02</span><span class="tl-ver">v1.0</span>
+        <div class="tl-title">Plugin created &amp; first live validation</div>
+        <div class="tl-body">HeadSpin Control ships as a Claude Code plugin — HAR-verified Bearer auth, device
+          inventory, iOS lock/unlock. GitHub Pages docs site added (landing + architecture reference + slide deck).</div>
+      </div>
+      <div class="tl-item">
+        <span class="tl-date">2026-07-03</span><span class="tl-ver">v1.2.0</span>
+        <div class="tl-title">Full capture lifecycle — 20 MCP tools</div>
+        <div class="tl-body">Complete lock → record → drive (adb) → stop → poll chain landed and frame-verified on real
+          Samsung devices (two parallel YouTube capture sessions, MP4 + report retrieved).</div>
+      </div>
+      <div class="tl-item">
+        <span class="tl-date">2026-07-05</span>
+        <div class="tl-title">Full-system 20/20 live validation + a11y defect analyzer</div>
+        <div class="tl-body">All 20 MCP tools driven end-to-end on a real Galaxy S10 (6.9&nbsp;MB MP4 + issue card +
+          16 time series). BUG-1 filed: farm-side recorder-miswiring reproduced across 2 device serials with frame
+          evidence. App-UI / a11y defect analyzer + capabilities deck &amp; data-flow diagram added.</div>
+      </div>
+      <div class="tl-item tl-item--now">
+        <span class="tl-date">2026-07-06</span><span class="tl-ver">this run</span>
+        <div class="tl-title">Full-plugin re-validation &amp; docs unification</div>
+        <div class="tl-body">All 14 skills exercised live (one real device lock+capture on <code class="inline-code">RFCN80FV2TA</code>
+          → session <code class="inline-code">7417229e-…</code> → 752×1664 h264 MP4, device released). Docs unified under one nav;
+          component counts corrected to 14/10/2/3/20; this timeline surfaced.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 08 THE GOTCHA ===================== -->
+  <section class="animate" style="--i:0">
+    <div class="sec-head">
+      <span class="sec-num">08</span>
       <h2>The One Thing To Understand</h2>
       <p>two credentials, not one</p>
     </div>
@@ -698,7 +757,7 @@ flowchart TD
   <!-- ===================== 08 INSTALL ===================== -->
   <section class="animate" style="--i:0">
     <div class="sec-head">
-      <span class="sec-num">08</span>
+      <span class="sec-num">09</span>
       <h2>Install &amp; First Run</h2>
       <p>full guides in docs/</p>
     </div>

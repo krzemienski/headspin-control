@@ -64,7 +64,7 @@ ticket.
 ```
 /headspin:connect <device>     # locks the device for you
 /headspin:control <input>      # drive it (iOS: Appium/xcuitest; Android: socket.io input.*)
-/headspin:disconnect           # releases the lock
+# lock auto-releases when your session ends (Stop / SessionEnd hooks) — no manual step
 ```
 
 The lock lifecycle is real and safe:

@@ -31,3 +31,6 @@ __pycache__/
 
 # Vendored upstream HeadSpin product docs — not part of this plugin's authored docs
 docs/headspin-docs/
+
+# Live validation run artifacts (real device serials/hostnames — do not publish)
+evidence/
