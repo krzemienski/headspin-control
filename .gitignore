@@ -28,3 +28,6 @@ __pycache__/
 **/.mimirs/
 .omc/
 **/__pycache__/
+
+# Vendored upstream HeadSpin product docs — not part of this plugin's authored docs
+docs/headspin-docs/

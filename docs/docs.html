@@ -289,7 +289,60 @@
   }
 </style>
 </head>
-<body>
+<body data-hspage="docs">
+<!-- ==== HSNAV: unified docs-site nav (self-contained, theme-aware) ==== -->
+<style>
+  :root { --hsnav-h: 46px; }
+  .hsnav {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--hsnav-h); z-index: 9999;
+    display: flex; align-items: center; gap: 4px; padding: 0 clamp(12px, 3vw, 28px);
+    font-family: 'IBM Plex Mono','Geist Mono','SF Mono',Consolas,monospace;
+    background: rgba(10, 14, 20, 0.82); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(120,160,220,0.18); box-sizing: border-box;
+  }
+  @media (prefers-color-scheme: light) { .hsnav { background: rgba(244,246,248,0.85); border-bottom-color: rgba(0,90,45,0.16); } }
+  .hsnav__brand { font-weight: 700; font-size: 13px; letter-spacing: -0.3px; color: #6ea8fe; text-decoration: none; margin-right: 14px; white-space: nowrap; }
+  .hsnav__brand b { color: #50fa7b; }
+  .hsnav__links { display: flex; align-items: center; gap: 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .hsnav__links::-webkit-scrollbar { display: none; }
+  .hsnav a.hsnav__lnk {
+    font-size: 11.5px; font-weight: 500; letter-spacing: 0.2px; text-decoration: none; white-space: nowrap;
+    color: #8ea3c4; padding: 6px 10px; border-radius: 7px; transition: background .15s, color .15s;
+  }
+  @media (prefers-color-scheme: light) { .hsnav a.hsnav__lnk { color: #5a6a7a; } }
+  .hsnav a.hsnav__lnk:hover { background: rgba(110,168,254,0.14); color: #cfe0ff; }
+  .hsnav a.hsnav__lnk[aria-current="page"] { color: #0a0e14; background: #6ea8fe; font-weight: 600; }
+  @media (prefers-color-scheme: light) { .hsnav a.hsnav__lnk[aria-current="page"] { color: #fff; background: #2563c9; } }
+  .hsnav__spacer { margin-left: auto; }
+  .hsnav a.hsnav__gh { font-size: 11px; color: #8ea3c4; text-decoration: none; padding: 6px 10px; border: 1px solid rgba(120,160,220,0.24); border-radius: 7px; white-space: nowrap; }
+  .hsnav a.hsnav__gh:hover { border-color: #6ea8fe; color: #cfe0ff; }
+  /* push page content below the fixed bar */
+  body { padding-top: calc(var(--hsnav-h) + 0px) !important; }
+  .deck { height: calc(100dvh - var(--hsnav-h)) !important; margin-top: 0; }
+  .deck .slide { height: calc(100dvh - var(--hsnav-h)) !important; }
+  @media (max-width: 640px) { .hsnav__brand span.hsnav__brand-full { display: none; } }
+</style>
+<nav class="hsnav" aria-label="HeadSpin Control docs">
+  <a class="hsnav__brand" href="./index.html">HeadSpin<b>.</b><span class="hsnav__brand-full"> Control</span></a>
+  <div class="hsnav__links">
+    <a class="hsnav__lnk" data-p="index" href="./index.html">Home</a>
+    <a class="hsnav__lnk" data-p="docs" href="./docs.html">Architecture</a>
+    <a class="hsnav__lnk" data-p="deck" href="./deck.html">Overview Deck</a>
+    <a class="hsnav__lnk" data-p="bug-finding-deck" href="./bug-finding-deck.html">Capabilities</a>
+    <a class="hsnav__lnk" data-p="bug-finding-dataflow" href="./bug-finding-dataflow.html">Data Flow</a>
+  </div>
+  <span class="hsnav__spacer"></span>
+  <a class="hsnav__gh" href="https://github.com/krzemienski/headspin-control" target="_blank" rel="noopener">GitHub ↗</a>
+</nav>
+<script>
+  (function () {
+    var p = (document.body.getAttribute('data-hspage') || '').trim();
+    if (!p) return;
+    var el = document.querySelector('.hsnav__lnk[data-p="' + p + '"]');
+    if (el) el.setAttribute('aria-current', 'page');
+  })();
+</script>
+<!-- ==== /HSNAV ==== -->
 <div class="container">
 
   <!-- ===================== MASTHEAD ===================== -->
@@ -311,11 +364,11 @@
 
   <!-- ===================== KPI STRIP ===================== -->
   <div class="kpi-row">
-    <div class="kpi animate-scale" style="--i:0"><div class="kpi__val">11</div><div class="kpi__label">Skills</div></div>
-    <div class="kpi animate-scale" style="--i:1"><div class="kpi__val">7</div><div class="kpi__label">Commands</div></div>
+    <div class="kpi animate-scale" style="--i:0"><div class="kpi__val">14</div><div class="kpi__label">Skills</div></div>
+    <div class="kpi animate-scale" style="--i:1"><div class="kpi__val">10</div><div class="kpi__label">Commands</div></div>
     <div class="kpi animate-scale" style="--i:2"><div class="kpi__val">2</div><div class="kpi__label">Agents</div></div>
     <div class="kpi animate-scale" style="--i:3"><div class="kpi__val">3</div><div class="kpi__label">Hooks</div></div>
-    <div class="kpi kpi--gold animate-scale" style="--i:4"><div class="kpi__val">6</div><div class="kpi__label">MCP Tools</div></div>
+    <div class="kpi kpi--gold animate-scale" style="--i:4"><div class="kpi__val">20</div><div class="kpi__label">MCP Tools</div></div>
     <div class="kpi kpi--green animate-scale" style="--i:5"><div class="kpi__val">34<small> live</small></div><div class="kpi__label">Devices Validated</div></div>
   </div>
 
@@ -341,7 +394,7 @@
       </div>
       <script type="text/plain" class="diagram-source">
 flowchart TD
-  U(("User")) --> CMD["/headspin: commands<br/>setup login devices connect<br/>control explore report"]
+  U(("User")) --> CMD["/headspin: commands (10)<br/>setup login devices connect control<br/>capture explore report sessions waterfall"]
   CMD --> SK["14 Skills<br/>login list-devices connect/control<br/>capture reports waterfall<br/>managers explore report"]
   SK --> MCP["MCP server (stdio)<br/>20 REST tools"]
   SK --> CM["connection-manager"]
@@ -526,10 +579,77 @@ flowchart TD
     </div></div>
   </section>
 
-  <!-- ===================== 05 VALIDATION ===================== -->
+  <!-- ===================== 05 DEVICE TIME SERIES ===================== -->
   <section class="animate" style="--i:0">
     <div class="sec-head">
       <span class="sec-num">05</span>
+      <h2>Device Time Series</h2>
+      <p>hs_session_timeseries_info → up to 31 signals · _download → CSV</p>
+    </div>
+    <div class="callout" style="border-left-color: var(--accent);">
+      <div class="callout__title" style="color: var(--accent);">What the platform measured, second by second</div>
+      <p>
+        Every capture session records a set of device time series — "what occurred on the device" as
+        measurable signals over the session timeline. <code>hs_session_timeseries_info</code> discovers what
+        was captured; <code>hs_session_timeseries_download</code> streams any one series to disk as CSV
+        (it returns <code>{saved_to, bytes}</code>, never the raw rows). The set scales with what the
+        capture recorded: a live video session returned <strong>31 series</strong>; a network-only session
+        returned 6.
+      </p>
+    </div>
+    <div class="card-grid" style="margin-top: 20px;">
+      <div class="ve-card ve-card--green">
+        <div class="ve-card__label">Video &amp; screen</div>
+        <ul class="node-list">
+          <li><code>video_quality_mos</code> · <code>screen_change</code></li>
+          <li><code>blockiness</code> · <code>blurriness</code> · <code>brightness</code></li>
+          <li><code>colorfulness</code> · <code>contrast</code> · <code>downsampling_index</code></li>
+          <li><code>page_content</code> · <code>screen_rotation</code></li>
+        </ul>
+      </div>
+      <div class="ve-card">
+        <div class="ve-card__label">Network</div>
+        <ul class="node-list">
+          <li><code>download_rate</code> · <code>throughput</code> · <code>net_cpu</code></li>
+          <li><code>concurrency</code> · <code>connections</code></li>
+          <li><code>network_in_bytes</code> (+ _rvi / _total / _packets)</li>
+          <li><code>network_out_bytes</code> (+ _rvi / _total / _packets)</li>
+          <li><code>signal_wifi_rssi</code></li>
+        </ul>
+      </div>
+      <div class="ve-card ve-card--gold">
+        <div class="ve-card__label">Power &amp; memory</div>
+        <ul class="node-list">
+          <li><code>battery_current</code></li>
+          <li><code>battery_energy_drain</code> (+ _percent)</li>
+          <li><code>memory_used</code> · <code>memory_used_percent</code></li>
+        </ul>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label">Impact <small>(composite)</small></div>
+        <ul class="node-list">
+          <li><code>impact</code> · <code>impact_kde</code></li>
+          <li>HeadSpin's blended performance score</li>
+        </ul>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-top: 18px;"><div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Live download — real byte counts</th><th>Series</th><th>Bytes</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="wide">session e8024cb0 · Galaxy S10 · 80 s YouTube drive</td><td><code>screen_change</code></td><td>67,767</td><td><span class="status status--pass">CSV to disk</span></td></tr>
+          <tr><td class="wide">session 968f82b2 · video-quality</td><td><code>video_quality_mos</code></td><td>8,800</td><td><span class="status status--pass">CSV to disk</span></td></tr>
+          <tr><td class="wide">session 968f82b2 · memory</td><td><code>memory_used</code></td><td>583</td><td><span class="status status--pass">CSV to disk</span></td></tr>
+          <tr><td class="wide">session 968f82b2 · network total</td><td><code>network_in_bytes_total</code></td><td>97</td><td><span class="status status--pass">CSV to disk</span></td></tr>
+        </tbody>
+      </table>
+    </div></div>
+  </section>
+
+  <!-- ===================== 06 VALIDATION ===================== -->
+  <section class="animate" style="--i:0">
+    <div class="sec-head">
+      <span class="sec-num">06</span>
       <h2>Validation Results</h2>
       <p>full passes 2026-07-02 / 07-03 / 07-05 · real system, no mocks</p>
     </div>
@@ -556,7 +676,7 @@ flowchart TD
   <!-- ===================== 06 THE GOTCHA ===================== -->
   <section class="animate" style="--i:0">
     <div class="sec-head">
-      <span class="sec-num">06</span>
+      <span class="sec-num">07</span>
       <h2>The One Thing To Understand</h2>
       <p>two credentials, not one</p>
     </div>
@@ -575,10 +695,10 @@ flowchart TD
     </div>
   </section>
 
-  <!-- ===================== 07 INSTALL ===================== -->
+  <!-- ===================== 08 INSTALL ===================== -->
   <section class="animate" style="--i:0">
     <div class="sec-head">
-      <span class="sec-num">07</span>
+      <span class="sec-num">08</span>
       <h2>Install &amp; First Run</h2>
       <p>full guides in docs/</p>
     </div>
