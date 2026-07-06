@@ -300,6 +300,18 @@ end-to-end in one 90-second run (session `e8024cb0`, Galaxy S10: 6,899,682-byte 
 issue card "Audio Too Quiet −30.8 LUFS", 16 time series, `screen_change` CSV 67,767 B —
 `e2e-evidence/headspin-cook-260705/VALIDATION-REPORT.md`).
 
+### Slash command
+
+```
+/headspin:capture RFCN80FV2TA youtube 2
+# <device-serial-or-address> [app] [duration-minutes]
+```
+
+Runs `Skill: headspin-capture`, which drives the full lock → record → drive → stop →
+report-ready lifecycle and always unlocks the device when it finishes.
+
+### What actually happens (the MCP tools the skill calls)
+
 ```
 hs_adb_lock          { "device_id": "RFCN80FV2TA", "timeout": 30 }
 hs_start_capture     { "device_address": "RFCN80FV2TA@dev-ca-tor-0-proxy-20-lin.headspin.io" }

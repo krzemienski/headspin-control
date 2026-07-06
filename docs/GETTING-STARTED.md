@@ -150,5 +150,8 @@ identity JWT is captured. This is a real, verified boundary — not a plugin bug
 | `/headspin:devices` | list the live device roster |
 | `/headspin:connect` | resolve + lock a device, open its control session |
 | `/headspin:control` | send input to the locked device |
+| `/headspin:capture` | full capture session — lock → record → drive → stop → report-ready (Android/Cast/FireTV) |
 | `/headspin:explore` | autonomous exploration (device-explorer agent) |
 | `/headspin:report` | standardized bug report (bug-reporter agent) |
+| `/headspin:sessions` | list captured sessions; pull the Waterfall issue card, analysis status, and device time series |
+| `/headspin:waterfall` | download a session's artifacts — HAR, screen-recording MP4, device event log, PCAP |
